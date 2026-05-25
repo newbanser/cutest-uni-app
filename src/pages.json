@@ -1,0 +1,106 @@
+{
+  "lazyCodeLoading": "requiredComponents",
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "81型融合人格测试",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/trends/trends",
+      "style": {
+        "navigationBarTitleText": "81型融合人格测试"
+      }
+    },
+    {
+      "path": "pages/guide/guide",
+      "style": {
+        "navigationBarTitleText": "81型融合人格测试"
+      }
+    },
+    {
+      "path": "pages/analysis/analysis",
+      "style": {
+        "navigationBarTitleText": "81型融合人格测试"
+      }
+    },
+    {
+      "path": "pages/view/view",
+      "style": {
+        "navigationBarTitleText": "81型融合人格测试"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "81型融合人格测试",
+    "navigationBarBackgroundColor": "#f4f4f4",
+    "backgroundColor": "#f4f4f4"
+  },
+  "tabBar": {
+    "custom": false,
+    "color": "#666666",
+    "selectedColor": "#FA325A",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "static/images/tab_home.png",
+        "selectedIconPath": "static/images/tab_home_active.png"
+      },
+      {
+        "pagePath": "pages/trends/trends",
+        "text": "趋势",
+        "iconPath": "static/images/tab_trends.png",
+        "selectedIconPath": "static/images/tab_trends_active.png"
+      },
+      {
+        "pagePath": "pages/guide/guide",
+        "text": "图鉴",
+        "iconPath": "static/images/tab_guide.png",
+        "selectedIconPath": "static/images/tab_guide_active.png"
+      }
+    ]
+  },
+  "h5": {
+    "title": "Daz-Lab",
+    "router": {
+      "mode": "hash",
+      "base": "./"
+    },
+    "devServer": {
+      "port": 8080
+    },
+    "tabBar": {
+      "custom": false,
+      "color": "#666666",
+      "selectedColor": "#FA325A",
+      "backgroundColor": "#ffffff",
+      "borderStyle": "black",
+      "list": [
+        {
+          "pagePath": "pages/index/index",
+          "text": "首页",
+          "iconPath": "static/images/tab_home.png",
+          "selectedIconPath": "static/images/tab_home_active.png"
+        },
+        {
+          "pagePath": "pages/trends/trends",
+          "text": "趋势",
+          "iconPath": "static/images/tab_trends.png",
+          "selectedIconPath": "static/images/tab_trends_active.png"
+        },
+        {
+          "pagePath": "pages/guide/guide",
+          "text": "图鉴",
+          "iconPath": "static/images/tab_guide.png",
+          "selectedIconPath": "static/images/tab_guide_active.png"
+        }
+      ]
+    }
+  }
+}
