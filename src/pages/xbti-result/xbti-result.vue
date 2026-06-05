@@ -151,6 +151,7 @@
 
 <script setup>
 import { ref, onMounted, getCurrentInstance } from 'vue';
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 import personalitiesData from '@/data/personalities';
 import { getPersonalityAvatar, getCampIconUrl } from '@/utils/imageHelper';
@@ -988,24 +989,23 @@ onMounted(() => {
   }
 });
 
-// 导出分享函数
-defineExpose({
-  onShareAppMessage() {
-    const cuteId = userStore.userData.cuteId || '';
-    return {
-      title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
-      path: `/pages/index/index?from=${cuteId}`,
-      imageUrl: ''
-    };
-  },
-  onShareTimeline() {
-    const cuteId = userStore.userData.cuteId || '';
-    return {
-      title: `81型融合人格测试 - 我的密语：${cuteId}`,
-      query: `from=${cuteId}`,
-      imageUrl: ''
-    };
-  }
+// 分享回调 — 使用 uni-app 生命周期钩子而非 defineExpose
+onShareAppMessage(() => {
+  const cuteId = userStore.userData.cuteId || '';
+  return {
+    title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
+    path: `/pages/index/index?from=${cuteId}`,
+    imageUrl: ''
+  };
+});
+
+onShareTimeline(() => {
+  const cuteId = userStore.userData.cuteId || '';
+  return {
+    title: `81型融合人格测试 - 我的密语：${cuteId}`,
+    query: `from=${cuteId}`,
+    imageUrl: ''
+  };
 });
 </script>
 

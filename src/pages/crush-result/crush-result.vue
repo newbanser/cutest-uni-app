@@ -72,6 +72,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
+import { useUserStore } from '@/stores/user';
 
 const myID = ref('');
 const friendID = ref('');
@@ -204,6 +206,26 @@ const generateDescription = () => {
 const goBack = () => {
   uni.navigateBack();
 };
+
+const userStore = useUserStore();
+
+onShareAppMessage(() => {
+  const cuteId = userStore.userData.cuteId || '';
+  return {
+    title: '我们的匹配度出来了，快来测测你的81型融合人格！',
+    path: `/pages/index/index?from=${cuteId}`,
+    imageUrl: ''
+  };
+});
+
+onShareTimeline(() => {
+  const cuteId = userStore.userData.cuteId || '';
+  return {
+    title: `81型融合人格测试 - 我的密语：${cuteId}`,
+    query: `from=${cuteId}`,
+    imageUrl: ''
+  };
+});
 
 const shareResult = () => {
   uni.showToast({
