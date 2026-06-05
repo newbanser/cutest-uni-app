@@ -1079,9 +1079,7 @@ export default {
                 showCancel: false,
                 confirmText: '开始测试',
                 success: () => {
-                  uni.navigateTo({
-                    url: '/pages/analysis-simple/analysis-simple'
-                  });
+                  this.showModeModal = true;
                 }
               });
               return;
@@ -1109,6 +1107,25 @@ export default {
       setTimeout(() => {
         this.showGenderModal = true;
       }, 100);
+    }
+  },
+  onShow() {
+    // 从测试页返回时，检查是否有待处理的匹配邀请
+    const matchTarget = uni.getStorageSync('matchTarget');
+    if (matchTarget && this.userStore?.userData?.analysis_records?.length > 0) {
+      uni.showModal({
+        title: '匹配邀请',
+        content: '你已完成人格测试，是否查看与好友的匹配度？',
+        confirmText: '立即查看',
+        cancelText: '偷偷测试',
+        success: (res) => {
+          if (res.confirm) {
+            this.processMatch(matchTarget, false);
+          } else {
+            this.processMatch(matchTarget, true);
+          }
+        }
+      });
     }
   },
   onLoad(options) {
