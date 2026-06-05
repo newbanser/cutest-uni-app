@@ -29,12 +29,16 @@
     "setting": {
       "urlCheck": false,
       "es6": true,
-      "minified": true
+      "minified": true,
+      "bigPackageSizeSupport": true,
+      "newFeature": true
     },
     "usingComponents": true,
     "lazyCodeLoading": "requiredComponents",
     "permission": {},
-    "cloudfunctionRoot": "cloudfunctions/"
+    "cloudfunctionRoot": "cloudfunctions/",
+    "libVersion": "3.7.0",
+    "miniprogramRoot": "./"
   },
   "h5": {
     "title": "DazLab",
