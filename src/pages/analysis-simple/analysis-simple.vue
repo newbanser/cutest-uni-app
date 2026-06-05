@@ -412,7 +412,8 @@ const doFinishAnalysis = async (isPrivate) => {
     console.log('[DEBUG] 数据已保存到本地存储');
     
     const matchTarget = uni.getStorageSync('matchTarget');
-    console.log('[DEBUG] matchTarget:', matchTarget);
+    console.log('[DEBUG] matchTarget:', JSON.stringify(matchTarget), 'type:', typeof matchTarget, 'length:', matchTarget?.length);
+    console.log('[DEBUG] matchTarget value:', matchTarget, 'truthy:', !!matchTarget);
     
     if (matchTarget) {
       // 如果有匹配目标，直接进行匹配流程

@@ -1136,7 +1136,8 @@ export default {
     const pages = getCurrentPages();
     const currentPage = pages[pages.length - 1];
     const opts = currentPage.options || options || {};
-    
+    console.log('[DEBUG] index onLoad opts:', JSON.stringify(opts), 'from:', opts?.from);
+
     if (opts && opts.from) {
       const matchTarget = opts.from;
       uni.setStorageSync('matchTarget', matchTarget);
