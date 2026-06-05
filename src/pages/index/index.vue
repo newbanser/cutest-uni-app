@@ -193,6 +193,7 @@ export default {
       showModeModal: false,
       _comprehensivePersonality: null,
       _reminderMessage: '',
+      isMatchShare: false, // 标记是否来自"关系测试"流程
       // 性别设置相关
       showGenderModal: false,
       showPrivacyConfirmModal: false,
@@ -312,12 +313,14 @@ export default {
     },
     closeShareModal() {
       this.showShareModalFlag = false;
+      this.isMatchShare = false;
     },
     closeTestModeModal() {
       this.showTestModeModal = false;
     },
     goDirectTest() {
       this.closeTestModeModal();
+      this.isMatchShare = true;
       this.showShareModalFlag = true;
     },
     goInputCuteId() {
@@ -1167,19 +1170,18 @@ export default {
   },
   onShareAppMessage() {
     const cuteId = this.userStore.userData.cuteId || '';
-    const hasRecords = this.userStore.userData.analysis_records && this.userStore.userData.analysis_records.length > 0;
-    
-    if (!hasRecords) {
+    // 仅当来自"关系测试"流程才带 from 参数触发匹配
+    if (this.isMatchShare) {
+      this.isMatchShare = false;
       return {
-        title: '来测测你的81型融合人格吧！',
-        path: '/pages/index/index',
+        title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
+        path: `/pages/index/index?from=${cuteId}`,
         imageUrl: ''
       };
     }
-    
     return {
-      title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
-      path: `/pages/index/index?from=${cuteId}`,
+      title: '来测测你的81型融合人格吧！',
+      path: '/pages/index/index',
       imageUrl: ''
     };
   },

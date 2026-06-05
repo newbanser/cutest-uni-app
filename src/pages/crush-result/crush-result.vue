@@ -210,10 +210,9 @@ const goBack = () => {
 const userStore = useUserStore();
 
 onShareAppMessage(() => {
-  const cuteId = userStore.userData.cuteId || '';
   return {
-    title: '我们的匹配度出来了，快来测测你的81型融合人格！',
-    path: `/pages/index/index?from=${cuteId}`,
+    title: '来测测你的81型融合人格吧！',
+    path: '/pages/index/index',
     imageUrl: ''
   };
 });

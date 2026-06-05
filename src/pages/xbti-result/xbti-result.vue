@@ -169,6 +169,7 @@ const showDeleteModal = ref(false);
 const showShareModalFlag = ref(false);
 const showTestModeModal = ref(false);
 const showInputCuteidModal = ref(false);
+const isMatchShare = ref(false); // 标记是否来自"关系测试"流程
 const currentViewId = ref(null);
 const isCurrentLatestRecord = ref(false);
 const remainingDeletes = ref(1);
@@ -695,6 +696,7 @@ const closeTestModeModal = () => {
 
 const goDirectTest = () => {
   closeTestModeModal();
+  isMatchShare.value = true;
   openShareModal();
 };
 
@@ -742,6 +744,7 @@ const openShareModal = () => {
 
 const closeShareModal = () => {
   showShareModalFlag.value = false;
+  isMatchShare.value = false;
 };
 
 const copyCuteId = () => {
@@ -990,11 +993,21 @@ onMounted(() => {
 });
 
 // 分享回调 — 使用 uni-app 生命周期钩子而非 defineExpose
+// "..." 菜单分享: 仅转发小程序，不带 from 参数
+// 关系测试按钮 → 直接测试 → 分享按钮: 携带 from 参数触发匹配
 onShareAppMessage(() => {
   const cuteId = userStore.userData.cuteId || '';
+  if (isMatchShare.value) {
+    isMatchShare.value = false;
+    return {
+      title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
+      path: `/pages/index/index?from=${cuteId}`,
+      imageUrl: ''
+    };
+  }
   return {
-    title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
-    path: `/pages/index/index?from=${cuteId}`,
+    title: '来测测你的81型融合人格吧！',
+    path: '/pages/index/index',
     imageUrl: ''
   };
 });
