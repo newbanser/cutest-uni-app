@@ -25,14 +25,18 @@ imagePaths['1x_icon'] = '/static/images/1x_icon.png';
 imagePaths['2x_icon'] = '/static/images/2x_icon.png';
 imagePaths['3x_icon'] = '/static/images/3x_icon.png';
 imagePaths['4x_icon'] = '/static/images/4x_icon.png';
-imagePaths['tab_history'] = '/static/images/tab_history.png';
-imagePaths['tab_history_active'] = '/static/images/tab_history_active.png';
 imagePaths['tab_home'] = '/static/images/tab_home.png';
 imagePaths['tab_home_active'] = '/static/images/tab_home_active.png';
-imagePaths['tab_view'] = '/static/images/tab_view.png';
-imagePaths['tab_view_active'] = '/static/images/tab_view_active.png';
 imagePaths['unknown'] = '/static/images/unknown.png';
 imagePaths['unknown_icon'] = '/static/images/unknown_icon.png';
+imagePaths['poster'] = '/static/images/poster.png';
+imagePaths['delete'] = '/static/images/delete.png';
+imagePaths['tab_crush'] = '/static/images/tab_crush.png';
+imagePaths['tab_crush_active'] = '/static/images/tab_crush_active.png';
+imagePaths['tab_lab'] = '/static/images/tab_lab.png';
+imagePaths['tab_lab_active'] = '/static/images/tab_lab_active.png';
+imagePaths['tab_guide'] = '/static/images/tab_guide.png';
+imagePaths['tab_guide_active'] = '/static/images/tab_guide_active.png';
 
 function getPersonalityAvatar(personality) {
   const lowerPersonality = (personality || 'unknown').toLowerCase();

@@ -1,7 +1,7 @@
 {
-  "name": "DazLab",
-  "appid": "wx7e7feb03058e5b26",
-  "description": "个人格测试小程序",
+	"name": "cutest",
+	"appid": "wx7e7feb03058e5b26",
+	"description": "个人格测试小程序",
   "versionName": "1.0.0",
   "versionCode": "100",
   "transformPx": false,

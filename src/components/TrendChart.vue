@@ -103,7 +103,7 @@ const chartData = computed(() => {
 }
 
 .header-label {
-  font-size: 30rpx;
+  font-size: 24rpx;
   color: #000000;
   font-weight: 700;
 }
@@ -218,7 +218,7 @@ const chartData = computed(() => {
 }
 
 .footer-label {
-  font-size: 30rpx;
+  font-size: 24rpx;
   color: #666666;
   font-weight: 700;
 }

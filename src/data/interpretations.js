@@ -84,13 +84,13 @@ const flipTemplates = {
     priority: 1,
     type: 'flip',
     dimension: 'TF',
-    template: '🔄 你的判断方式反转了。{oldLetter}倾向（{oldPercent}%）被{newLetter}倾向（{newPercent}%）反超。你做决定时更依赖{newDesc}了。'
+    template: '🔄 你的决策依据反转了。{oldLetter}倾向（{oldPercent}%）被{newLetter}倾向（{newPercent}%）反超。你做决定时更依赖{newDesc}了。'
   },
   '二-JP': {
     priority: 1,
     type: 'flip',
     dimension: 'JP',
-    template: '🔄 你的生活态度反转了。{oldLetter}倾向（{oldPercent}%）被{newLetter}倾向（{newPercent}%）反超。你最近对计划的态度变了。'
+    template: '🔄 你的行为偏好反转了。{oldLetter}倾向（{oldPercent}%）被{newLetter}倾向（{newPercent}%）反超。你最近对计划的态度变了。'
   }
 };
 

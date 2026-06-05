@@ -1,4 +1,5 @@
 import scenarios from '../data/scenarios.js';
+import simpleScenarios from '../data/simple-scenarios.js';
 
 const STORAGE_KEY = 'scenarioHistory';
 const MAX_HISTORY_COUNT = 5;
@@ -72,6 +73,128 @@ const scoring = {
     return { scenarios: selected, scenarioIds };
   },
 
+  generateSimpleScenarios: function() {
+    const dimensions = ['Ni', 'Ne', 'Si', 'Se', 'Ti', 'Te', 'Fi', 'Fe'];
+    const selected = [];
+    const recentIds = this.getRecentScenarioIds();
+
+    dimensions.forEach(dim => {
+      const dimScenarios = simpleScenarios[dim];
+      let available = dimScenarios.filter(q => !recentIds.has(q.id));
+
+      if (available.length >= 3) {
+        const shuffled = this.shuffle(available);
+        selected.push(...shuffled.slice(0, 3));
+      } else {
+        const shuffled = this.shuffle([...dimScenarios]);
+        selected.push(...shuffled.slice(0, 3));
+      }
+    });
+
+    for (let i = selected.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [selected[i], selected[j]] = [selected[j], selected[i]];
+    }
+
+    const scenarioIds = selected.map(q => q.id);
+    this.saveHistory(scenarioIds);
+    return { scenarios: selected, scenarioIds };
+  },
+
+  // 简单模式：单题得分 A=5, B=4, C=3, D=2, E=1
+  getSimpleScore: function(answerIndex) {
+    // answerIndex: 0=A, 1=B, 2=C, 3=D, 4=E
+    return 5 - answerIndex;
+  },
+
+  // 简单模式：计算8个维度的原始得分（Ni, Ne, Si, Se, Ti, Te, Fi, Fe）
+  getSimpleDimensionScores: function(scenariosList, answerIndices) {
+    const scores = { Ni: 0, Ne: 0, Si: 0, Se: 0, Ti: 0, Te: 0, Fi: 0, Fe: 0 };
+    scenariosList.forEach((q, idx) => {
+      const answerIndex = answerIndices[idx];
+      if (answerIndex >= 0 && answerIndex <= 4) {
+        scores[q.dimension] += this.getSimpleScore(answerIndex);
+      }
+    });
+    return scores;
+  },
+
+  // 简单模式：将原始得分转换为百分比（满分15分）
+  getSimplePercentages: function(scores) {
+    const percentages = {};
+    for (const dim in scores) {
+      percentages[dim] = Math.round((scores[dim] / 15) * 100);
+    }
+    return percentages;
+  },
+
+  // 简单模式：计算组平均得分
+  getGroupAverage: function(scores, groupDims) {
+    let total = 0;
+    groupDims.forEach(dim => {
+      total += scores[dim] || 0;
+    });
+    return total / groupDims.length;
+  },
+
+  // 简单模式：计算组占比
+  getGroupPercentage: function(scores, groupDims) {
+    const avg = this.getGroupAverage(scores, groupDims);
+    return Math.round((avg / 15) * 100);
+  },
+
+  // 简单模式：正确的判型逻辑
+  // 1. 先找到占比更高的作为主要字母
+  // 2. 主要字母占比 45%~55% → X
+  // 3. 主要字母占比 >55% → 偏向主要字母
+  // 4. 主要字母占比 <45% → 偏向对立字母
+  judgeDimension: function(group1Percent, group2Percent, letter1, letter2) {
+    // 找到占比更高的作为主要字母
+    let mainLetter = group1Percent > group2Percent ? letter1 : letter2;
+    let mainPercent = group1Percent > group2Percent ? group1Percent : group2Percent;
+    
+    // 主要字母占比在 45%~55% → 融合
+    if (mainPercent >= 45 && mainPercent <= 55) {
+      return 'X';
+    }
+    
+    // 主要字母占比 >55% → 偏向主要字母
+    return mainLetter;
+  },
+
+  // 简单模式：判定最终人格类型
+  determineSimplePersonality: function(scores) {
+    // 第一位：E/I/X
+    const introvertDims = ['Ni', 'Si', 'Ti', 'Fi'];
+    const extrovertDims = ['Ne', 'Se', 'Te', 'Fe'];
+    const introvertPercent = this.getGroupPercentage(scores, introvertDims);
+    const extrovertPercent = this.getGroupPercentage(scores, extrovertDims);
+    const first = this.judgeDimension(introvertPercent, extrovertPercent, 'I', 'E');
+
+    // 第二位：N/S/X
+    const intuitionDims = ['Ni', 'Ne'];
+    const sensingDims = ['Si', 'Se'];
+    const intuitionPercent = this.getGroupPercentage(scores, intuitionDims);
+    const sensingPercent = this.getGroupPercentage(scores, sensingDims);
+    const second = this.judgeDimension(intuitionPercent, sensingPercent, 'N', 'S');
+
+    // 第三位：T/F/X
+    const thinkingDims = ['Ti', 'Te'];
+    const feelingDims = ['Fi', 'Fe'];
+    const thinkingPercent = this.getGroupPercentage(scores, thinkingDims);
+    const feelingPercent = this.getGroupPercentage(scores, feelingDims);
+    const third = this.judgeDimension(thinkingPercent, feelingPercent, 'T', 'F');
+
+    // 第四位：J/P/X
+    const judgingDims = ['Ni', 'Te', 'Fe', 'Si'];
+    const perceivingDims = ['Ti', 'Ne', 'Fi', 'Se'];
+    const judgingPercent = this.getGroupPercentage(scores, judgingDims);
+    const perceivingPercent = this.getGroupPercentage(scores, perceivingDims);
+    const fourth = this.judgeDimension(judgingPercent, perceivingPercent, 'J', 'P');
+
+    return first + second + third + fourth;
+  },
+
   // 根据用户选择的选项编号（1~5）获得该题的分数（1~5）
   // 规则：1=完全符合=5分, 2=比较符合=4分, 3=中立=3分, 4=不太符合=2分, 5=完全不符合=1分
   getSingleScenarioScore: function(answer) {
@@ -142,46 +265,46 @@ const scoring = {
   },
 
   // 人格类型判定（基于百分比）
-  // 规则：E和I差值≥10%→高分方，<10%→X；同理其他维度
+  // 规则：与简单模式保持一致
   determinePersonality: function(rawScores) {
-    const THRESHOLD = 10;
+    const THRESHOLD_LOW = 45;
+    const THRESHOLD_HIGH = 55;
     let personality = '';
+    
+    const determineLetter = (leftScore, rightScore, leftLetter, rightLetter) => {
+      const total = leftScore + rightScore;
+      if (total > 0) {
+        const leftPercent = Math.round((leftScore / total) * 100);
+        const rightPercent = Math.round((rightScore / total) * 100);
+        
+        // 与简单模式相同的判型逻辑
+        let mainLetter = leftPercent > rightPercent ? leftLetter : rightLetter;
+        let mainPercent = leftPercent > rightPercent ? leftPercent : rightPercent;
+        
+        if (mainPercent >= THRESHOLD_LOW && mainPercent <= THRESHOLD_HIGH) {
+          return 'X';
+        }
+        
+        return mainLetter;
+      }
+      return 'X';
+    };
     
     const eScore = rawScores.E || 0;
     const iScore = rawScores.I || 0;
-    const eiDiff = Math.abs(eScore - iScore) / 15 * 100;
-    if (eiDiff >= THRESHOLD) {
-      personality += eScore >= iScore ? 'E' : 'I';
-    } else {
-      personality += 'X';
-    }
+    personality += determineLetter(eScore, iScore, 'E', 'I');
     
     const sScore = rawScores.S || 0;
     const nScore = rawScores.N || 0;
-    const snDiff = Math.abs(sScore - nScore) / 15 * 100;
-    if (snDiff >= THRESHOLD) {
-      personality += sScore >= nScore ? 'S' : 'N';
-    } else {
-      personality += 'X';
-    }
+    personality += determineLetter(sScore, nScore, 'S', 'N');
     
     const tScore = rawScores.T || 0;
     const fScore = rawScores.F || 0;
-    const tfDiff = Math.abs(tScore - fScore) / 15 * 100;
-    if (tfDiff >= THRESHOLD) {
-      personality += tScore >= fScore ? 'T' : 'F';
-    } else {
-      personality += 'X';
-    }
+    personality += determineLetter(tScore, fScore, 'T', 'F');
     
     const jScore = rawScores.J || 0;
     const pScore = rawScores.P || 0;
-    const jpDiff = Math.abs(jScore - pScore) / 15 * 100;
-    if (jpDiff >= THRESHOLD) {
-      personality += jScore >= pScore ? 'J' : 'P';
-    } else {
-      personality += 'X';
-    }
+    personality += determineLetter(jScore, pScore, 'J', 'P');
     
     return personality;
   },
@@ -230,7 +353,7 @@ const scoring = {
         '这是你的第一次解析，开启人格探索之旅吧！',
         '欢迎来到人格测试，让我们开始探索你的内心世界',
         '初次见面，让我来认识真正的你',
-        '准备好发现你的人格类型了吗？开始吧！'
+        '恭喜你完成第一次测试，你的人格类型已经揭晓！'
       ];
       return { 
         type: 'first_analysis', 
@@ -248,17 +371,23 @@ const scoring = {
       { key: 'TF', left: 'T', right: 'F', name: '思维/情感' },
       { key: 'JP', left: 'J', right: 'P', name: '判断/感知' }
     ];
-    const THRESHOLD = 2;
+    const THRESHOLD = 10;
     dimensions.forEach(dim => {
       const currentLeft = currentScores[dim.left] || 0;
       const currentRight = currentScores[dim.right] || 0;
       const previousLeft = previousScores[dim.left] || 0;
       const previousRight = previousScores[dim.right] || 0;
-      const currentDiff = currentLeft - currentRight;
-      const previousDiff = previousLeft - previousRight;
-      const diffChange = Math.abs(currentDiff - previousDiff);
-      const currentLetter = currentDiff >= THRESHOLD ? dim.left : currentDiff <= -THRESHOLD ? dim.right : 'X';
-      const previousLetter = previousDiff >= THRESHOLD ? dim.left : previousDiff <= -THRESHOLD ? dim.right : 'X';
+      
+      const currentTotal = currentLeft + currentRight;
+      const previousTotal = previousLeft + previousRight;
+      
+      const currentDiffPercent = currentTotal > 0 ? Math.abs(currentLeft - currentRight) / currentTotal * 100 : 0;
+      const previousDiffPercent = previousTotal > 0 ? Math.abs(previousLeft - previousRight) / previousTotal * 100 : 0;
+      const diffChange = Math.abs(currentDiffPercent - previousDiffPercent);
+      
+      const currentLetter = currentDiffPercent >= THRESHOLD ? (currentLeft >= currentRight ? dim.left : dim.right) : 'X';
+      const previousLetter = previousDiffPercent >= THRESHOLD ? (previousLeft >= previousRight ? dim.left : dim.right) : 'X';
+      
       if (currentLetter !== previousLetter) {
         changes.push({
           type: 'flip',
@@ -269,22 +398,22 @@ const scoring = {
           level: 'high',
           scoreChange: diffChange
         });
-      } else if (diffChange >= 4) {
+      } else if (diffChange >= 10) {
         changes.push({
           type: 'significant',
           dimension: dim.key,
           dimensionName: dim.name,
-          direction: currentDiff > 0 ? dim.left : dim.right,
+          direction: currentLeft >= currentRight ? dim.left : dim.right,
           currentLetter: currentLetter,
           level: 'medium',
           scoreChange: diffChange
         });
-      } else if (diffChange >= 2) {
+      } else if (diffChange >= 5) {
         changes.push({
           type: 'moderate',
           dimension: dim.key,
           dimensionName: dim.name,
-          direction: currentDiff > 0 ? dim.left : dim.right,
+          direction: currentLeft >= currentRight ? dim.left : dim.right,
           currentLetter: currentLetter,
           level: 'low',
           scoreChange: diffChange
@@ -346,11 +475,11 @@ const scoring = {
       const allDesc = [...flipDescriptions, ...otherDescriptions];
       
       const messages = [
-        `黑化预警！${flipDescriptions.join('，')}，${flipChanges.length > 1 ? '多个维度同时反转' : '核心维度发生反转'}。这可能与近期经历相关，建议回顾近期的生活变化，注意观察这种转变带来的影响。${allDesc.length > 2 ? '其他维度也有变化：' + otherDescriptions.join('；') : ''}`,
-        `黑化预警！${flipDescriptions.join('、')}发生翻转！${flipChanges.length === 4 ? '四大维度全部反转，你的人格正在经历彻底的重塑！' : '这是重要的信号'}。建议反思近期的重大事件，关注这种变化是否让你感到不适。`,
-        `黑化预警！${flipDescriptions.join('，')}，${flipChanges.length === 4 ? '四个维度全部发生突变！' : '维度发生突变！'}你的人格正在经历剧烈转变。注意事项：保持自我觉察，观察这种变化是否持续，必要时可以与朋友交流感受。${otherDescriptions.length > 0 ? '同时' + otherDescriptions.join('、') : ''}。`,
-        `黑化预警！检测到${flipDescriptions.join('，')}维度反转${flipChanges.length === 4 ? '，四大维度全部颠覆！' : '。'}${allDesc.length > 1 ? '具体变化：' + allDesc.join('；') : ''}。提示：人格变化通常反映了生活状态的改变，试着接纳这种转变，它可能是成长的信号。`,
-        `黑化预警！${flipDescriptions.join('、')}大反转！${flipChanges.length === 4 ? '四重反转！' : ''}是成长还是伪装？只有你自己知道。${otherDescriptions.length > 0 ? '另外' + otherDescriptions.join('、') : ''}。建议：保持开放心态，给变化一些时间，不必急于下结论。`
+        `黑化预警！检测到有维度发生融合，有维度发生反转。人格变化通常反映了生活状态的改变，试着接纳这种转变，它可能是成长的信号。`,
+        `黑化预警！检测到维度发生变化。人格变化通常反映了生活状态的改变，试着接纳这种转变，它可能是成长的信号。`,
+        `黑化预警！检测到有维度发生融合，有维度发生反转。人格变化通常反映了生活状态的改变，试着接纳这种转变，它可能是成长的信号。`,
+        `黑化预警！检测到维度反转。人格变化通常反映了生活状态的改变，试着接纳这种转变，它可能是成长的信号。`,
+        `黑化预警！检测到有维度发生融合，有维度发生反转。人格变化通常反映了生活状态的改变，试着接纳这种转变，它可能是成长的信号。`
       ];
       return {
         type: 'flip',
@@ -466,6 +595,309 @@ const scoring = {
       dimensionCurves.JP.push({ date: view.timestamp, value: jpTotal > 0 ? Math.round((j / jpTotal) * 100) : 50 });
     });
     return { personalityCurve, dimensionCurves };
+  },
+
+  calculateMatch: function(userA, userB) {
+    let matchScore = 0;
+    
+    const aScores = userA.rawScores || userA.raw_scores || {};
+    const bScores = userB.rawScores || userB.raw_scores || {};
+    
+    const keys = ['E', 'I', 'S', 'N', 'T', 'F', 'J', 'P'];
+    let totalDiff = 0;
+    let totalScore = 0;
+    
+    keys.forEach(key => {
+      const a = aScores[key] || 0;
+      const b = bScores[key] || 0;
+      totalDiff += Math.abs(a - b);
+      totalScore += a + b;
+    });
+    
+    const maxPossibleDiff = 120;
+    const similarity = 100 - (totalDiff / maxPossibleDiff) * 100;
+    
+    matchScore = Math.round(similarity);
+    
+    return Math.max(0, Math.min(100, matchScore));
+  },
+
+  // 从百分比数据计算维度数据
+  // 输入：{E, I, S, N, T, F, J, P} 0-100 百分比（结果页展示的最终分值）
+  calculateDimensionData: function(percentages) {
+    const dimensionData = {
+      EI: { value: 'X', percent: 50 },
+      SN: { value: 'X', percent: 50 },
+      TF: { value: 'X', percent: 50 },
+      JP: { value: 'X', percent: 50 }
+    };
+
+    const safePercent = (v) => {
+      const n = Number(v);
+      if (isNaN(n)) return 0;
+      return Math.max(0, Math.min(100, n));
+    };
+
+    // 计算 EI
+    const ePercent = safePercent(percentages.E);
+    const iPercent = safePercent(percentages.I);
+    dimensionData.EI = this._judgeDimension(ePercent, iPercent, 'E', 'I');
+
+    // 计算 SN
+    const sPercent = safePercent(percentages.S);
+    const nPercent = safePercent(percentages.N);
+    dimensionData.SN = this._judgeDimension(sPercent, nPercent, 'S', 'N');
+
+    // 计算 TF
+    const tPercent = safePercent(percentages.T);
+    const fPercent = safePercent(percentages.F);
+    dimensionData.TF = this._judgeDimension(tPercent, fPercent, 'T', 'F');
+
+    // 计算 JP
+    const jPercent = safePercent(percentages.J);
+    const pPercent = safePercent(percentages.P);
+    dimensionData.JP = this._judgeDimension(jPercent, pPercent, 'J', 'P');
+
+    return dimensionData;
+  },
+
+  _judgeDimension: function(aPercent, bPercent, aLetter, bLetter) {
+    const mainLetter = aPercent > bPercent ? aLetter : bLetter;
+    const mainPercent = Math.max(aPercent, bPercent);
+
+    if (mainPercent >= 45 && mainPercent <= 55) {
+      return { value: 'X', percent: mainPercent };
+    }
+    return { value: mainLetter, percent: mainPercent };
+  },
+
+  // 关系匹配算法 - 新算法
+  // userAData / userBData 应包含 {percentages: {E,I,S,N,T,F,J,P}, gender}
+  calculateRelationshipMatch: function(userAData, userBData) {
+    try {
+      // 1. 从百分比数据提取维度数据
+      const aDimData = this.calculateDimensionData(userAData.percentages || userAData.rawScores || userAData.raw_scores || {});
+      const bDimData = this.calculateDimensionData(userBData.percentages || userBData.rawScores || userBData.raw_scores || {});
+
+      // 2. 计算有效维度匹配分
+      let rawTotal = 0;
+      let validCount = 0;
+      const xCount = this._countX(aDimData) + this._countX(bDimData);
+
+      const dimensions = ['EI', 'SN', 'TF', 'JP'];
+      dimensions.forEach(dim => {
+        const aVal = aDimData[dim].value;
+        const bVal = bDimData[dim].value;
+
+        if (aVal === 'X' || bVal === 'X') {
+          return; // 无效维度
+        }
+
+        validCount++;
+        if (aVal === bVal) {
+          rawTotal += 1;
+        } else {
+          rawTotal -= 1;
+        }
+      });
+
+      let M = 0;
+      if (validCount > 0) {
+        M = rawTotal / validCount;
+      }
+
+      // 3. 判断是否为情侣语境
+      const isCoupleContext = this._isCoupleContext(M, userAData.gender, userBData.gender);
+      
+      // 4. 情侣语境加分
+      if (isCoupleContext) {
+        M = Math.min(M + 0.2, 0.95);
+      }
+
+      // 5. 判定等级
+      const level = this._determineLevel(M, xCount, validCount);
+
+      // 6. 获取关系名
+      const relationName = this._getRelationName(level, userAData.gender, userBData.gender, isCoupleContext);
+
+      // 7. 获取颜色
+      const color = this._getColor(level, xCount);
+
+      // 8. 狱友彩蛋
+      let finalRelationName = relationName;
+      let finalColor = color;
+      if (level === 'D' && xCount >= 2 && !isCoupleContext) {
+        finalRelationName = '狱友';
+        finalColor = '⚪';
+      }
+
+      // 9. 描述文案（占位符，后续补充）
+      const description = this._getRelationDescription(level);
+
+      return {
+        relationName: finalRelationName,
+        color: finalColor,
+        level: level,
+        description: description,
+        matchScore: Math.round((M + 1) * 50), // 转换为0-100分
+        rawM: M,
+        xCount: xCount,
+        validCount: validCount,
+        isCoupleContext: isCoupleContext
+      };
+    } catch (error) {
+      console.error('计算关系匹配失败:', error);
+      // 返回安全的默认值，防止程序卡住
+      return {
+        relationName: '普通朋友',
+        color: '🔵',
+        level: 'B',
+        description: '这是一段独特的关系',
+        matchScore: 50,
+        rawM: 0,
+        xCount: 0,
+        validCount: 0,
+        isCoupleContext: false
+      };
+    }
+  },
+
+  _countX: function(dimData) {
+    let count = 0;
+    if (dimData.EI.value === 'X') count++;
+    if (dimData.SN.value === 'X') count++;
+    if (dimData.TF.value === 'X') count++;
+    if (dimData.JP.value === 'X') count++;
+    return count;
+  },
+
+  _isCoupleContext: function(M, aGender, bGender) {
+    // 灵魂知己（S级）+ 双方为异性
+    return M >= 0.9 && aGender && bGender && aGender !== bGender;
+  },
+
+  _determineLevel: function(M, xCount, validCount) {
+    if (validCount === 0) {
+      return 'B';
+    }
+
+    if (M >= 0.9) {
+      return xCount <= 1 ? 'S' : 'C1';
+    } else if (M >= 0.7) {
+      return 'C1';
+    } else if (M >= 0.5) {
+      return 'C2';
+    } else if (M >= 0.3) {
+      return 'C3';
+    } else if (M >= -0.2) {
+      return 'B';
+    } else if (M >= -0.4) {
+      return xCount >= 1 ? 'M1' : 'M2';
+    } else if (M >= -0.6) {
+      return xCount <= 1 ? 'M2' : 'A';
+    } else if (M >= -0.8) {
+      return 'A';
+    } else {
+      return xCount <= 1 ? 'D' : 'A';
+    }
+  },
+
+  _getRelationName: function(level, aGender, bGender, isCouple) {
+    const isSameGender = aGender && bGender && aGender === bGender;
+    const isDiffGender = aGender && bGender && aGender !== bGender;
+    const isMale = aGender === 'male' || bGender === 'male';
+    const isFemale = aGender === 'female' || bGender === 'female';
+
+    const RELATION_MAP = {
+      S: {
+        couple: '灵魂伴侣',
+        friendM: '灵魂知己',
+        friendF: '灵魂知己',
+        male: '孪生兄弟',
+        female: '孪生姐妹',
+        default: '灵魂知己'
+      },
+      C1: { default: '脑波同频' },
+      C2: { sameGender: '桃园结义', default: '脑波同频' },
+      C3: { couple: '欢喜冤家', default: '师徒' },
+      M1: { couple: '老夫老妻', sameGender: '死党', female: '闺蜜', default: '臭味相投' },
+      B: { default: '寡淡如水' },
+      M2: { couple: '需要磨合', default: '臭味相投' },
+      A: { default: '礼貌距离' },
+      D: { couple: '冤家情侣', sameGender: '死对头', female: '塑料姐妹', male: '塑料兄弟', default: '冤家情侣' },
+      XXXX: { default: '纯纯白给' },
+      JAIL: { default: '狱友' }
+    };
+
+    const levelData = RELATION_MAP[level] || RELATION_MAP.B;
+
+    if (isCouple && levelData.couple) {
+      return levelData.couple;
+    }
+
+    if (isSameGender && levelData.sameGender) {
+      return levelData.sameGender;
+    }
+
+    if (isFemale && levelData.female) {
+      return levelData.female;
+    }
+
+    if (isMale && levelData.male) {
+      return levelData.male;
+    }
+
+    if (isDiffGender && (levelData.friendM || levelData.friendF)) {
+      return isMale ? levelData.friendM || levelData.default : levelData.friendF || levelData.default;
+    }
+
+    return levelData.default;
+  },
+
+  _getColor: function(level, xCount) {
+    const defaultColor = (() => {
+      switch (level) {
+        case 'S':
+        case 'C1':
+        case 'C2':
+          return '🟡';
+        case 'C3':
+        case 'M1':
+          return '🟣';
+        case 'B':
+        case 'M2':
+        case 'A':
+        case 'D':
+          return '🔵';
+        default:
+          return '⚪';
+      }
+    })();
+
+    if (xCount >= 2) {
+      const downgrade = { '🟡': '🟣', '🟣': '🔵', '🔵': '⚪' };
+      return downgrade[defaultColor] || '⚪';
+    }
+
+    return defaultColor;
+  },
+
+  _getRelationDescription: function(level) {
+    // 占位符描述，后续补充
+    const descriptions = {
+      S: '你们是最懂彼此的人，心灵深处有着惊人的默契。',
+      C1: '你们的想法总是能同步，脑波频率高度一致。',
+      C2: '你们像结拜兄弟一样，有着深厚的情谊。',
+      C3: '吵吵闹闹，却又离不开对方。',
+      M1: '像老夫老妻一样，互相包容理解。',
+      B: '关系平淡如水，不会太近也不会太远。',
+      M2: '需要时间磨合，臭味相投也不错。',
+      A: '保持礼貌的距离，彼此尊重。',
+      D: '冤家路窄，却又彼此牵挂。',
+      XXXX: '纯纯白给，毫无默契可言。',
+      JAIL: '狱友情深，一起扛过！'
+    };
+    return descriptions[level] || '这是一段独特的关系。';
   }
 };
 

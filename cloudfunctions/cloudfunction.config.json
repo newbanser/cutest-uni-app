@@ -1,0 +1,17 @@
+{
+  "envId": "cloud1-d2gz1iuxn08055996",
+  "privatePath": "cloudfunctions",
+  "deployPath": "cloudfunctions",
+  "uploadInclude": [
+    "**/*.js",
+    "**/*.json",
+    "**/*.ts",
+    "**/*.md",
+    "**/*.npmignore",
+    "**/.gitignore"
+  ],
+  "uploadExclude": [
+    "node_modules/**/*",
+    ".git/**/*"
+  ]
+}

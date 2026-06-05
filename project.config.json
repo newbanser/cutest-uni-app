@@ -12,7 +12,8 @@
       "outputPath": ""
     },
     "useCompilerPlugins": false,
-    "minifyWXML": true
+    "minifyWXML": true,
+    "cloudfunctionRoot": "./cloudfunctions/"
   },
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
@@ -21,5 +22,35 @@
     "include": []
   },
   "appid": "wx7e7feb03058e5b26",
+  "projectname": "cutest-uni-app",
+  "debugOptions": {
+    "hidedInDevtools": []
+  },
+  "scripts": {},
+  "staticServerOptions": {
+    "baseURL": "",
+    "servePath": ""
+  },
+  "isGameTourist": false,
+  "condition": {
+    "search": {
+      "list": []
+    },
+    "conversation": {
+      "list": []
+    },
+    "game": {
+      "list": []
+    },
+    "plugin": {
+      "list": []
+    },
+    "gamePlugin": {
+      "list": []
+    },
+    "miniprogram": {
+      "list": []
+    }
+  },
   "editorSetting": {}
 }
