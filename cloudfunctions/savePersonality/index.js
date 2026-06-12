@@ -33,7 +33,13 @@ exports.main = async (event, context) => {
       current_personality: event.personalityCode || event.personality || '',
       current_personality_name: event.personalityName || '',
       current_percentages: event.percentages || {},
+      personality_test_count: event.personality_test_count || 0,
       updated_at: db.serverDate()
+    }
+
+    // relationship_match_count 由 createMatch 云函数管理，不在 profile 更新中覆盖
+    if (event.relationship_match_count !== undefined) {
+      userData.relationship_match_count = event.relationship_match_count;
     }
     
     console.log('[savePersonality] 准备保存的数据:', JSON.stringify(userData))

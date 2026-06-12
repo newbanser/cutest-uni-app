@@ -1,7 +1,7 @@
 {
-  "name": "savePersonality",
+  "name": "clearMatchData",
   "version": "1.0.0",
-  "description": "保存人格数据",
+  "description": "",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"
@@ -9,6 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
   "author": "",
   "license": "ISC"
 }

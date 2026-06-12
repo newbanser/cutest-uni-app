@@ -5,9 +5,6 @@ import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
 
 onLaunch(() => {
-  userStore.loadUserData();
-  console.log('App launched');
-  
   if (wx.cloud) {
     wx.cloud.init({
       env: 'cloud1-d2gz1iuxn08055996',
@@ -17,10 +14,17 @@ onLaunch(() => {
   } else {
     console.warn('wx.cloud 不存在，请确保已开通云开发');
   }
+
+  userStore.loadUserData();
+  console.log('App launched');
 });
 
-onShow(() => {
-  console.log('App Show');
+onShow((options) => {
+  console.log('App Show', JSON.stringify(options));
+  // 从分享链接重新进入时，保存 from 参数供页面使用
+  if (options && options.query && options.query.from) {
+    uni.setStorageSync('pendingFromLink', options.query.from);
+  }
 });
 
 onHide(() => {

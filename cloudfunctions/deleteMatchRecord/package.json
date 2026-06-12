@@ -1,7 +1,7 @@
 {
-  "name": "createMatch",
+  "name": "deleteMatchRecord",
   "version": "1.0.0",
-  "description": "",
+  "description": "软删除关系测试记录",
   "main": "index.js",
   "dependencies": {
     "wx-server-sdk": "~2.6.3"
@@ -9,7 +9,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC"
 }

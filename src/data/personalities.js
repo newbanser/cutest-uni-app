@@ -183,7 +183,7 @@ const personalityNames = {
   unknown: 'Hello 新人你好'
 };
 
-function getName(code) {
+export function getName(code) {
   return personalityNames[code] || `${code} Personality`;
 }
 

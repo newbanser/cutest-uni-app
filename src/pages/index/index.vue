@@ -14,42 +14,44 @@
       <canvas canvas-id="shareCanvas" id="shareCanvas" class="share-canvas" style="width: 750px; height: 1200px; visibility: hidden; position: fixed; left: -9999px; top: -9999px;"></canvas>
 
       <view class="card entry-card">
-        <view class="test-entry-left" @tap="handleRelationTest">
-          <text class="test-entry-subtitle">CRUSH TEST</text>
-          <text class="test-entry-title">关系测试</text>
-          <text class="test-entry-desc">测测我们的关系</text>
+        <view class="reminder-bar">
+          <text class="reminder-text">{{ reminderMessage }}</text>
         </view>
-        <view class="test-entry-divider"></view>
-        <view class="test-entry-right" @tap="goToPersonalityTest">
-          <text class="test-entry-subtitle">XBTI TEST</text>
-          <text class="test-entry-title">人格测试</text>
-          <text class="test-entry-desc">追踪自己的人格</text>
+        <view class="entry-body">
+          <view class="test-entry-left" @tap="handleRelationTest">
+            <text class="test-entry-subtitle">CRUSH TEST</text>
+            <text class="test-entry-title">关系测试</text>
+            <text class="test-entry-desc">测测我们的关系</text>
+          </view>
+          <view class="test-entry-divider"></view>
+          <view class="test-entry-right" @tap="goToPersonalityTest">
+            <text class="test-entry-subtitle">XBTI TEST</text>
+            <text class="test-entry-title">人格测试</text>
+            <text class="test-entry-desc">追踪自己的人格</text>
+          </view>
         </view>
       </view>
       
       <view class="card personality-card" v-if="comprehensivePersonality" @tap="goToPersonalityDetail">
-        <text class="trend-title" style="display: none;">人格</text>
-        <view class="personality-header-bar">
-          <text class="header-bar-text">{{ reminderMessage }}</text>
-          <text class="more-link" @tap.stop="goToPersonalityDetail">查看更多></text>
-        </view>
-        <text class="update-date">更新日期 {{ comprehensivePersonality.dateTime }}</text>
-        <view class="trend-personality-main">
-          <view class="trend-personality-content">
-            <image class="trend-personality-avatar" :src="comprehensivePersonality.personalityAvatar" mode="aspectFit"></image>
-            <view class="trend-personality-info">
-              <view class="trend-personality-header">
-                <text class="trend-personality-name">{{ comprehensivePersonality.personalityName }}</text>
+        <text class="personality-title">我的人格测试</text>
+        <text class="more-link" @tap.stop="goToPersonalityDetail">查看更多></text>
+        <text class="update-date">更新日期 {{ displayDate }}</text>
+        <view class="personality-main">
+          <view class="personality-content">
+            <image class="personality-avatar" :src="comprehensivePersonality.personalityAvatar" mode="aspectFill"></image>
+            <view class="personality-info">
+              <view class="personality-header">
+                <text class="personality-name">{{ comprehensivePersonality.personalityName }}</text>
               </view>
-              <text class="trend-camp-name">{{ comprehensivePersonality.campName }}</text>
-              <view class="trend-dimensions" v-if="comprehensivePersonality.dimensions && comprehensivePersonality.dimensions.length > 0">
-                <text class="trend-dimension-tag" v-for="(item, index) in comprehensivePersonality.dimensions" :key="index">{{ item }}</text>
+              <text class="camp-name" v-if="comprehensivePersonality.campName">{{ comprehensivePersonality.campName }}</text>
+              <view class="dimensions" v-if="comprehensivePersonality.dimensions && comprehensivePersonality.dimensions.length > 0">
+                <text class="dimension-tag" v-for="(item, index) in comprehensivePersonality.dimensions" :key="index">{{ item }}</text>
               </view>
             </view>
           </view>
         </view>
-        <text class="trend-description">{{ comprehensivePersonality.description }}</text>
-        <image class="trend-camp-badge" v-if="comprehensivePersonality.campBadgeIcon" :src="comprehensivePersonality.campBadgeIcon" mode="aspectFit"></image>
+        <text class="description">{{ comprehensivePersonality.description }}</text>
+        <image class="camp-badge" v-if="comprehensivePersonality.campBadgeIcon" :src="comprehensivePersonality.campBadgeIcon" mode="aspectFit"></image>
       </view>
 
       <text class="tip-text">本分析仅供娱乐参考，不能代替专业心理评估。</text>
@@ -116,26 +118,22 @@
         <view class="modal-close" @tap="closeGenderModal">×</view>
         <text class="modal-title">你的性别是？</text>
         <view class="gender-options">
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'male' ? 'selected' : '']"
             @tap="selectGender('male')">
-            <text class="gender-emoji">♂️</text>
-            <text class="gender-text">男生</text>
+            <text class="gender-text">男的</text>
           </view>
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'female' ? 'selected' : '']"
             @tap="selectGender('female')">
-            <text class="gender-emoji">♀️</text>
-            <text class="gender-text">女生</text>
+            <text class="gender-text">女的</text>
           </view>
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
             @tap="selectGender('x')">
-            <text class="gender-emoji">🤫</text>
             <text class="gender-text">不告诉你</text>
           </view>
         </view>
-        <button class="save-gender-btn" @tap="saveGender">确定</button>
       </view>
     </view>
 
@@ -165,12 +163,13 @@
         />
         <view class="input-cuteId-buttons">
           <button class="input-cuteId-btn input-cuteId-btn-cancel" @tap="closeInputCuteIdModal">取消</button>
-          <button class="input-cuteId-btn input-cuteId-btn-direct" @tap="doDirectMatch">直接测试</button>
-          <button class="input-cuteId-btn input-cuteId-btn-private" @tap="doPrivateMatch">偷偷测试</button>
+          <button class="input-cuteId-btn input-cuteId-btn-direct" @tap="doMatch">开始匹配</button>
         </view>
       </view>
     </view>
-  </view>
+
+    <!-- 匹配邀请弹窗 -->
+      </view>
 </template>
 
 <script>
@@ -184,7 +183,6 @@ export default {
     return {
       personalities: personalitiesData.personalitiesData.personalities,
       userProfile: {
-        userId: '',
         nickname: '',
         avatar: ''
       },
@@ -201,7 +199,7 @@ export default {
       pendingAction: null, // 保存性别后要执行的操作
       // 输入密语相关
       showInputCuteIdModal: false,
-      inputCuteId: ''
+      inputCuteId: '',
     };
   },
   computed: {
@@ -239,21 +237,35 @@ export default {
     reminderMessage() {
       const records = this.userStore.userData.analysis_records;
       if (!records || records.length === 0) {
-        return '当前暂无测试记录';
+        return '当前暂无人格测试记录，点击人格测试马上开始吧';
       }
-      
+
       const latestRecord = records[records.length - 1];
       const now = Date.now();
       const timeDiff = now - latestRecord.timestamp;
       const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
-      
+
       if (daysDiff >= 3) {
-        return '测试保质期已过，当前结果无法代表真实的你';
+        return '人格测试已经过期，现在的结果无法代表真实的你';
       } else if (daysDiff >= 1) {
-        return '测试即将临期，马上更新测试结果吧';
+        return '人格测试即将临期，马上去追踪自己的人格变化吧';
       } else {
-        return '要不要分享给朋友，测测匹配度';
+        return '人格测试新鲜出炉，马上和朋友测测关系匹配度吧';
       }
+    },
+    hasAnalysisRecords() {
+      const records = this.userStore.userData.analysis_records;
+      return records && records.length > 0;
+    },
+    displayDate() {
+      if (this.hasAnalysisRecords) {
+        return this.comprehensivePersonality.dateTime;
+      }
+      const startDate = uni.getStorageSync('app_start_date');
+      if (startDate) {
+        return this.formatDateTime(startDate);
+      }
+      return this.formatDateTime(Date.now());
     },
     cuteId() {
       return this.userStore.userData.cuteId;
@@ -283,7 +295,7 @@ export default {
       // 检查是否需要设置性别
       const hasGender = this.userStore.userData.gender;
       if (!hasGender) {
-        this.pendingAction = 'showTestModeModal';
+        this.pendingAction = 'goToSimpleModeForRelation';
         this.openGenderModal(true); // 传入 true 表示是新用户第一次设置
         return;
       }
@@ -292,20 +304,22 @@ export default {
       if (this.userStore.userData.analysis_records.length === 0) {
         uni.showModal({
           title: '需要先完成人格测试',
-          content: '进行关系测试需要先完成人格测试，获取你的人格数据',
+          content: '进行关系测试需要先完成人格测试，是否现在去测试？',
           confirmText: '去测试',
-          cancelText: '回到首页',
+          cancelText: '取消',
           success: (res) => {
             if (res.confirm) {
-              this.pendingAction = 'goToPersonalityTest';
-              this.goToPersonalityTest();
+              uni.setStorageSync('pendingRelationTest', true);
+              uni.navigateTo({
+                url: '/pages/analysis-simple/analysis-simple'
+              });
             }
           }
         });
         return;
       }
       
-      // 显示测试模式选择弹窗
+      // 显示测试模式选择弹窗（可选择"直接测试"或"输入密语"）
       this.showTestModeModal = true;
     },
     openShareModal() {
@@ -334,7 +348,7 @@ export default {
     closeInputCuteIdModal() {
       this.showInputCuteIdModal = false;
     },
-    doDirectMatch() {
+    doMatch() {
       if (!this.inputCuteId || this.inputCuteId.length !== 7) {
         uni.showToast({
           title: '请输入完整的7位密语',
@@ -344,17 +358,6 @@ export default {
       }
       this.closeInputCuteIdModal();
       this.processMatch(this.inputCuteId.toUpperCase(), false);
-    },
-    doPrivateMatch() {
-      if (!this.inputCuteId || this.inputCuteId.length !== 7) {
-        uni.showToast({
-          title: '请输入完整的7位密语',
-          icon: 'none'
-        });
-        return;
-      }
-      this.closeInputCuteIdModal();
-      this.processMatch(this.inputCuteId.toUpperCase(), true);
     },
     generateCuteIdImage() {
       this.closeShareModal();
@@ -635,7 +638,6 @@ export default {
       try {
         const saved = uni.getStorageSync('userProfile');
         if (saved && typeof saved === 'object') {
-          this.userProfile.userId = (typeof saved.userId === 'string' && saved.userId.trim()) ? saved.userId : 'cuteid';
           this.userProfile.nickname = (typeof saved.nickname === 'string' && saved.nickname.trim()) ? saved.nickname : '小可爱';
           this.userProfile.avatar = (typeof saved.avatar === 'string') ? saved.avatar : '';
         }
@@ -869,7 +871,7 @@ export default {
       if (uni.cloud) {
         uni.cloud.callFunction({
           name: 'getPersonality',
-          data: { cuteId: friendCuteId },
+          data: { cuteid: friendCuteId },
           success: (res) => {
             clearTimeout(timeoutId);
             console.log(`[index processMatch] getPersonality 返回:`, res);
@@ -915,11 +917,11 @@ export default {
     },
     processMatchResult(friendPersonalityData, friendCuteId, isPrivate) {
       const myCuteId = this.userStore.userData.cuteId || '';
-      
-      const latestRecord = this.userStore.userData.analysis_records && this.userStore.userData.analysis_records.length > 0 
+
+      const latestRecord = this.userStore.userData.analysis_records && this.userStore.userData.analysis_records.length > 0
         ? this.userStore.userData.analysis_records[this.userStore.userData.analysis_records.length - 1]
         : null;
-        
+
       if (!latestRecord) {
         uni.hideLoading();
         uni.showModal({
@@ -930,18 +932,18 @@ export default {
         });
         return;
       }
-      
+
       const myPersonality = latestRecord.personality || '';
       const myGender = latestRecord.gender || this.userStore.userData.gender;
-      
+
       const myData = {
         percentages: latestRecord.percentages || { E: 50, I: 50, S: 50, N: 50, T: 50, F: 50, J: 50, P: 50 },
         gender: myGender
       };
-      
+
       let friendData = null;
       let friendPersonality = '';
-      
+
       if (friendPersonalityData && friendPersonalityData.percentages && Object.keys(friendPersonalityData.percentages).length > 0) {
         friendData = {
           percentages: friendPersonalityData.percentages,
@@ -958,36 +960,81 @@ export default {
         });
         return;
       }
-      
+
       const matchResult = scoring.calculateRelationshipMatch(myData, friendData);
-      
+
       console.log('匹配结果:', matchResult);
-      
+
+      // 判断是否来自链接流程（好友分享的链接），交换 userA/userB
+      // 链接流程：好友（friendCuteId）是发起方 → userB（initiator）；
+      // 手动流程：本地用户（myCuteId）是发起方 → userB（initiator）
+      const fromLink = uni.getStorageSync('fromLink');
+      uni.removeStorageSync('fromLink');
+
+      const initiatorCuteId = fromLink ? friendCuteId : myCuteId;
+      const initiatorPersonality = fromLink ? friendPersonality : myPersonality;
+      const initiatorData = fromLink ? friendData.percentages : myData.percentages;
+      const targetCuteId = fromLink ? myCuteId : friendCuteId;
+      const targetPersonality = fromLink ? myPersonality : friendPersonality;
+      const targetData = fromLink ? myData.percentages : friendData.percentages;
+
       const savedMatchResult = {
-        userA: { 
-          cuteId: friendCuteId, 
-          personalityCode: friendPersonality, 
-          personality: friendPersonality, 
-          percentages: friendData.percentages 
-        },
-        userB: { 
-          cuteId: myCuteId, 
-          personalityCode: myPersonality, 
-          personality: myPersonality, 
-          percentages: myData.percentages 
-        },
-        matchScore: matchResult.matchScore, 
+        userA: { cuteId: targetCuteId, personalityCode: targetPersonality, personality: targetPersonality, percentages: targetData },
+        userB: { cuteId: initiatorCuteId, personalityCode: initiatorPersonality, personality: initiatorPersonality, percentages: initiatorData },
+        matchScore: matchResult.matchScore,
         matchData: matchResult,
-        isPrivate
+        isPrivate,
+        source: fromLink ? 'link' : 'manual'
       };
-      
+
+      // 保存到 matchResultsMap（按好友 cuteId 缓存，后续链接重复进入可直达结果）
+      const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
+      matchResultsMap[friendCuteId] = savedMatchResult;
+      uni.setStorageSync('matchResultsMap', matchResultsMap);
       uni.setStorageSync('matchResult', savedMatchResult);
+
+      // 保存到本地匹配记录列表（每次匹配都记录，用于计数）
+      const matchRecords = uni.getStorageSync('matchRecords') || [];
+      const exists = matchRecords.some(r =>
+        (r.userA?.cuteId === friendCuteId && r.userB?.cuteId === myCuteId) ||
+        (r.userA?.cuteId === myCuteId && r.userB?.cuteId === friendCuteId)
+      );
+      if (!exists) {
+        matchRecords.push({
+          userA: { cuteId: fromLink ? myCuteId : friendCuteId, personalityCode: targetPersonality },
+          userB: { cuteId: fromLink ? friendCuteId : myCuteId, personalityCode: initiatorPersonality },
+          matchData: matchResult,
+          source: fromLink ? 'link' : 'manual',
+          timestamp: Date.now()
+        });
+        uni.setStorageSync('matchRecords', matchRecords);
+      }
       uni.setStorageSync('matchTarget', '');
-      
+
+      // 同步保存到云端，双方均可查看记录数
+      // 链接流程要注意：发起方是分享链接的人，不是本地调用者
+      uni.cloud.callFunction({
+        name: 'createMatch',
+        data: {
+          myCuteId: fromLink ? friendCuteId : myCuteId,
+          friendCuteId: fromLink ? myCuteId : friendCuteId,
+          matchResult: matchResult,
+          isPrivate: isPrivate,
+          source: fromLink ? 'link' : 'manual',
+          timestamp: Date.now(),
+          initiatorPersonality: initiatorPersonality,
+          targetPersonality: targetPersonality
+        }
+      }).then(res => {
+        console.log('[processMatchResult] 云端保存匹配记录成功:', res);
+      }).catch(err => {
+        console.log('[processMatchResult] 云端保存匹配记录失败:', err);
+      });
+
       setTimeout(() => {
         uni.hideLoading();
-        uni.navigateTo({ 
-          url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(friendCuteId)}&matchResult=${encodeURIComponent(JSON.stringify(matchResult))}`
+        uni.navigateTo({
+          url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(friendCuteId)}`
         });
       }, 100);
     },
@@ -1001,7 +1048,18 @@ export default {
       this.showGenderModal = false;
     },
     selectGender(gender) {
+      if (gender === 'x') {
+        // 保密 → 隐私确认弹窗
+        this.selectedGender = 'x';
+        this.showGenderModal = false;
+        this.showPrivacyConfirmModal = true;
+        return;
+      }
+      // 直接保存并执行后续操作
       this.selectedGender = gender;
+      this.userStore.updateProfile({ gender });
+      this.closeGenderModal();
+      this.executePendingAction();
     },
     saveGender() {
       if (!this.selectedGender) {
@@ -1061,43 +1119,25 @@ export default {
               success: (res) => {
                 if (res.confirm) {
                   this.pendingAction = 'goToPersonalityTest';
+                  uni.setStorageSync('pendingRelationTest', true);
                   this.goToPersonalityTest();
                 }
               }
             });
             return;
           }
-          this.showTestModeModal = true;
+          this.isMatchShare = true;
+      this.showShareModalFlag = true;
+        } else if (action === 'goToSimpleModeForRelation') {
+          uni.setStorageSync('pendingRelationTest', true);
+          uni.navigateTo({
+            url: '/pages/analysis-simple/analysis-simple'
+          });
         } else if (action === 'processFromLink') {
           // 从链接进入的处理逻辑
           const matchTarget = uni.getStorageSync('matchTarget');
           if (matchTarget) {
-            if (!this.userStore.userData.analysis_records || this.userStore.userData.analysis_records.length === 0) {
-              uni.showModal({
-                title: '匹配邀请',
-                content: `收到好友的人格密语邀请！但你需要先完成人格测试才能查看匹配结果。`,
-                showCancel: false,
-                confirmText: '开始测试',
-                success: () => {
-                  this.showModeModal = true;
-                }
-              });
-              return;
-            }
-            
-            uni.showModal({
-              title: '匹配邀请',
-              content: `收到好友的人格密语邀请！是否查看你们的匹配度？`,
-              confirmText: '立即查看',
-              cancelText: '偷偷测试',
-              success: (res) => {
-                if (res.confirm) {
-                  this.processMatch(matchTarget, false);
-                } else {
-                  this.processMatch(matchTarget, true);
-                }
-              }
-            });
+            this.handleIncomingMatch(matchTarget);
           }
         }
       }
@@ -1107,90 +1147,86 @@ export default {
       setTimeout(() => {
         this.showGenderModal = true;
       }, 100);
+    },
+    handleIncomingMatch(matchTarget) {
+      // 防止重复执行（onShow 和 onLoad 的 setTimeout 都会触发）
+      if (uni.getStorageSync("_handlingIncoming")) { console.log("[handleIncomingMatch] 已在处理中，跳过"); return; }
+      uni.setStorageSync("_handlingIncoming", true);
+      uni.removeStorageSync('pendingFromLink');
+      uni.setStorageSync('fromLink', true);
+      uni.setStorageSync('matchTarget', matchTarget);
+      uni.setStorageSync('inviterCuteid', matchTarget);
+
+      // 优先从 matchResultsMap 缓存读取已有匹配结果（按好友 cuteId 索引）
+      const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
+      const cachedMatch = matchResultsMap[matchTarget];
+      if (cachedMatch && cachedMatch.matchData) {
+        uni.setStorageSync('matchTarget', '');
+        uni.navigateTo({
+          url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(cachedMatch.userB.cuteId)}&friendID=${encodeURIComponent(matchTarget)}`
+        });
+        return;
+      }
+
+      // 检查是否需要设置性别
+      const hasGender = this.userStore.userData.gender;
+      if (!hasGender) {
+        this.pendingAction = 'processFromLink';
+        uni.removeStorageSync("_handlingIncoming");
+        this.openGenderModal();
+        return;
+      }
+
+      if (!this.userStore.userData.analysis_records || this.userStore.userData.analysis_records.length === 0) {
+        uni.showModal({
+          title: '需要先完成人格测试',
+          content: '进行关系测试需要先完成人格测试，是否现在去测试？',
+          confirmText: '去测试',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              uni.navigateTo({
+                url: '/pages/analysis-simple/analysis-simple'
+              });
+            }
+          }
+        });
+        return;
+      }
+
+      // 已有测试记录 → 直接匹配
+      this.processMatch(matchTarget, false);
     }
   },
   onShow() {
-    // 从测试页返回时，检查是否有待处理的匹配邀请
-    const matchTarget = uni.getStorageSync('matchTarget');
-    if (matchTarget && this.userStore?.userData?.analysis_records?.length > 0) {
-      uni.showModal({
-        title: '匹配邀请',
-        content: '你已完成人格测试，是否查看与好友的匹配度？',
-        confirmText: '立即查看',
-        cancelText: '偷偷测试',
-        success: (res) => {
-          if (res.confirm) {
-            this.processMatch(matchTarget, false);
-          } else {
-            this.processMatch(matchTarget, true);
-          }
-        }
-      });
+    // 回到页面时确保分享弹窗已关闭（分享完成后返回会触发 onShow）
+    this.showShareModalFlag = false;
+    uni.removeStorageSync("_handlingIncoming");
+    // 处理从外部链接进入（app 已打开时，onLoad 不会重跑）
+    const pendingFromLink = uni.getStorageSync('pendingFromLink');
+    if (pendingFromLink) {
+      uni.removeStorageSync('pendingFromLink');
+      this.handleIncomingMatch(pendingFromLink);
     }
   },
   onLoad(options) {
     this.loadUserProfile();
     this.userStore.loadUserData();
     this.refreshTrendData();
-    
+
     const pages = getCurrentPages();
     const currentPage = pages[pages.length - 1];
     const opts = currentPage.options || options || {};
     console.log('[DEBUG] index onLoad opts:', JSON.stringify(opts), 'from:', opts?.from);
 
-    if (opts && opts.from) {
-      const matchTarget = opts.from;
-      uni.setStorageSync('matchTarget', matchTarget);
-      
-      // 检查是否需要设置性别
-      const hasGender = this.userStore.userData.gender;
-      if (!hasGender) {
-        setTimeout(() => {
-          this.pendingAction = 'processFromLink';
-          this.openGenderModal();
-        }, 500);
-        return;
-      }
-      
-      if (!this.userStore.userData.analysis_records || this.userStore.userData.analysis_records.length === 0) {
-        setTimeout(() => {
-          uni.showModal({
-            title: '匹配邀请',
-            content: `收到好友的人格密语邀请！但你需要先完成人格测试才能查看匹配结果。`,
-            showCancel: false,
-            confirmText: '开始测试',
-            success: () => {
-              uni.navigateTo({
-                url: '/pages/analysis-simple/analysis-simple'
-              });
-            }
-          });
-        }, 500);
-        return;
-      }
-      
-      setTimeout(() => {
-        uni.showModal({
-          title: '匹配邀请',
-          content: `收到好友的人格密语邀请！是否查看你们的匹配度？`,
-          confirmText: '立即查看',
-          cancelText: '偷偷测试',
-          success: (res) => {
-            if (res.confirm) {
-              this.processMatch(matchTarget, false);
-            } else {
-              this.processMatch(matchTarget, true);
-            }
-          }
-        });
-      }, 500);
-    }
+// handleIncomingMatch 由 onShow 中的 pendingFromLink 处理
   },
   onShareAppMessage() {
     const cuteId = this.userStore.userData.cuteId || '';
     // 仅当来自"关系测试"流程才带 from 参数触发匹配
     if (this.isMatchShare) {
       this.isMatchShare = false;
+      this.showShareModalFlag = false;
       return {
         title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
         path: `/pages/index/index?from=${cuteId}`,
@@ -1246,7 +1282,7 @@ page {
 .page-container {
   min-height: 100vh;
   padding: 0;
-  padding-bottom: calc(env(safe-area-inset-bottom) + 120rpx);
+  padding-bottom: 20rpx;
   box-sizing: border-box;
   width: 100%;
   max-width: 480px;
@@ -1257,7 +1293,7 @@ page {
 
 .brand-area {
   width: 100%;
-  height: 750rpx;
+  min-height: 750rpx;
   background-color: #f4f4f4;
   position: relative;
   z-index: 0;
@@ -1299,7 +1335,7 @@ page {
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 28rpx;
-  margin-bottom: 30rpx;
+  margin-bottom: 26rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
   position: relative;
 }
@@ -1309,9 +1345,9 @@ page {
   color: #646464;
   line-height: 1.6;
   text-align: center;
-  padding: 20rpx 0 10rpx;
+  padding: 20rpx 0;
   margin-top: 20rpx;
-  margin-bottom: 10rpx;
+  margin-bottom: 24rpx;
   display: block;
 }
 
@@ -1329,65 +1365,94 @@ button::after {
 
 .personality-card {
   position: relative;
-  padding: 0 28rpx 28rpx;
+  padding: 28rpx;
+}
+
+.personality-title {
+  display: none;
 }
 
 .more-link {
   position: absolute;
-  right: 24rpx;
+  top: 28rpx;
+  right: 28rpx;
   font-size: 24rpx;
-  color: #ffffff;
+  color: #000000;
 }
 
-.trend-personality-main {
+.update-date {
+  font-size: 22rpx;
+  color: #646464;
+  margin-bottom: 20rpx;
+  display: block;
+  white-space: nowrap;
+  overflow: visible;
+  line-height: 1.5;
+}
+
+.reminder-bar {
+  background-color: #000000;
+  color: #ffffff;
+  padding: 20rpx 28rpx;
+  text-align: center;
+  border-radius: 16rpx 16rpx 0 0;
+}
+
+.reminder-text {
+  font-size: 24rpx;
+  color: #ffffff;
+  display: block;
+}
+
+.personality-main {
   display: flex;
   justify-content: center;
 }
 
-.trend-personality-content {
+.personality-content {
   display: flex;
   align-items: center;
 }
 
-.trend-personality-avatar {
+.personality-avatar {
   width: 160rpx;
   height: 160rpx;
   margin-right: 24rpx;
   flex-shrink: 0;
 }
 
-.trend-personality-info {
+.personality-info {
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
-.trend-personality-header {
+.personality-header {
   display: flex;
   align-items: center;
   margin-bottom: 12rpx;
 }
 
-.trend-personality-name {
+.personality-name {
   font-size: 36rpx;
   font-weight: 700;
   color: #000000;
 }
 
-.trend-camp-name {
+.camp-name {
   font-size: 26rpx;
   color: #646464;
   margin-bottom: 16rpx;
 }
 
-.trend-dimensions {
+.dimensions {
   display: flex;
   flex-wrap: wrap;
   gap: 12rpx;
   margin-bottom: 16rpx;
 }
 
-.trend-dimension-tag {
+.dimension-tag {
   background-color: #000000;
   color: #ffffff;
   font-size: 22rpx;
@@ -1397,35 +1462,40 @@ button::after {
   white-space: nowrap;
 }
 
-.trend-description {
+.description {
   font-size: 26rpx;
   color: #000000;
   line-height: 1.6;
-  margin-top: 20rpx;
+  margin-top: 40rpx;
   display: block;
   text-align: center;
 }
 
-.trend-camp-badge {
+.camp-badge {
   position: absolute;
-  top: 50rpx;
+  top: 14rpx;
   right: 14rpx;
-  width: 200rpx;
-  height: 200rpx;
+  width: 180rpx;
+  height: 180rpx;
   opacity: 0.1;
   z-index: 1;
 }
 
 .entry-card {
-  display: flex !important;
-  flex-direction: row !important;
+  margin-top: -60rpx;
+  position: relative;
+  z-index: 1;
+  border-radius: 16rpx;
+  padding: 0;
+}
+
+.entry-body {
+  display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: 32rpx 28rpx;
-  margin-top: -90rpx;
-  margin-bottom: 50rpx;
-  position: relative;
-  z-index: 1;
+  border-radius: 0 0 16rpx 16rpx;
 }
 
 .test-entry-left,
@@ -1474,29 +1544,6 @@ button::after {
   flex-shrink: 0;
 }
 
-.personality-header-bar {
-  background-color: #000000;
-  color: #ffffff;
-  padding: 16rpx 28rpx;
-  border-radius: 16rpx 16rpx 0 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: -28rpx -28rpx 20rpx -28rpx;
-}
-
-.header-bar-text {
-  font-size: 24rpx;
-  color: #ffffff;
-}
-
-.update-date {
-  font-size: 24rpx;
-  color: #646464;
-  margin-bottom: 20rpx;
-  display: block;
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1511,7 +1558,7 @@ button::after {
 }
 
 .modal-container {
-  width: 500rpx;
+  width: 560rpx;
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 40rpx 28rpx;
@@ -1530,7 +1577,7 @@ button::after {
 }
 
 .modal-title {
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #000000;
   text-align: center;
@@ -1545,6 +1592,7 @@ button::after {
   display: block;
   margin-bottom: 40rpx;
 }
+
 
 .share-options {
   display: flex;

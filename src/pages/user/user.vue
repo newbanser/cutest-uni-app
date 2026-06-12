@@ -4,65 +4,47 @@
     
     <!-- 用户信息区域 -->
     <view class="user-card">
-      <view class="user-avatar-container">
+      <view class="user-avatar-container" @tap.stop>
         <view class="user-avatar-wrapper">
-          <!-- 微信头像选择按钮 -->
-          <button 
-            class="avatar-btn" 
-            open-type="chooseAvatar" 
+          <button
+            class="avatar-btn"
+            open-type="chooseAvatar"
             @chooseavatar="onChooseAvatar"
             plain
           >
           </button>
-          <image 
-            v-if="userStore.userData.avatar" 
-            class="user-avatar" 
-            :src="userStore.userData.avatar" 
+          <image
+            v-if="userStore.userData.avatar"
+            class="user-avatar"
+            :src="userStore.userData.avatar"
             mode="aspectFill"
           ></image>
-          <image 
-            v-else 
-            class="user-avatar" 
-            src="/static/images/user_default.png" 
+          <image
+            v-else
+            class="user-avatar"
+            src="/static/images/user_default.png"
             mode="aspectFill"
           ></image>
         </view>
-        <view class="avatar-edit-badge" @tap.stop="chooseImageAvatar">
-          <image src="/static/images/set_avatar.png" class="badge-icon"></image>
+        <!-- 性别角标 -->
+        <view class="gender-badge" @tap.stop="openGenderModal">
+          <image class="gender-badge-icon" :src="genderIcon" mode="aspectFit"></image>
         </view>
       </view>
       <view class="user-info">
-        <view class="nickname-row">
-          <text v-if="userStore.userData.nickname" class="user-nickname">{{ userStore.userData.nickname }}</text>
-          <button 
-            v-else 
-            type="nickname" 
-            class="nickname-btn"
-            open-type="getUserInfo"
-            @getuserinfo="onGetUserInfo"
-          >
-            <text class="nickname-placeholder">点击使用微信昵称</text>
-          </button>
-          <view class="edit-nickname" @tap="editNickname">
-            <image src="/static/images/set_name.png" class="edit-icon-img"></image>
-          </view>
-        </view>
+        <!-- 昵称 → 使用open-type nickname调取微信昵称 -->
+        <button
+          class="nickname-btn"
+          open-type="nickname"
+          @nicknamereview="onNicknameReview"
+          @tap="onNicknameTap"
+        >
+          <text class="user-nickname">{{ userStore.userData.nickname || '点击设置微信昵称' }}</text>
+          <image v-if="userStore.userData.nickname" src="/static/images/set_name.png" class="edit-icon-img"></image>
+        </button>
         <view class="cuteId-row" @tap="copyCuteId">
           <text class="cuteId-label">人格密语</text>
           <text class="cuteId-value">{{ userStore.userData.cuteId }}</text>
-          <text class="cuteId-copy">点击复制</text>
-        </view>
-        <view class="gender-row">
-          <text class="gender-label">性别</text>
-          <text class="gender-value" @tap="openGenderModal">{{ getGenderText() }}</text>
-        </view>
-      </view>
-      <view class="action-area">
-        <view class="settings-btn" @tap="openSettingsModal">
-          <text class="settings-icon">⚙️</text>
-        </view>
-        <view class="logout-btn" @tap="cancelAccount">
-          <text class="logout-text">注销</text>
         </view>
       </view>
     </view>
@@ -70,13 +52,13 @@
     <!-- 快速统计 -->
     <view class="stats-card">
       <view class="stat-item">
-        <text class="stat-number">{{ userStore.userData.analysis_records.length }}</text>
-        <text class="stat-label">解析次数</text>
+        <text class="stat-number">{{ storeLoading ? '--' : userStore.userData.analysis_count }}</text>
+        <text class="stat-label">人格测试次数</text>
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
-        <text class="stat-number">0</text>
-        <text class="stat-label">匹配次数</text>
+        <text class="stat-number">{{ storeLoading ? '--' : matchCount }}</text>
+        <text class="stat-label">关系测试次数</text>
       </view>
       <view class="stat-divider"></view>
       <view class="stat-item">
@@ -88,13 +70,18 @@
     <!-- 功能菜单 -->
     <view class="menu-card">
       <view class="menu-item" @tap="goToHistory">
-        <image src="/static/images/history.png" class="menu-icon-img"></image>
-        <text class="menu-label">历史记录</text>
+        <image src="/static/images/xbti_history.png" class="menu-icon-img"></image>
+        <text class="menu-label">人格测试记录</text>
+        <text class="menu-arrow">›</text>
+      </view>
+      <view class="menu-item" @tap="goToMatchHistory">
+        <image src="/static/images/crush_history.png" class="menu-icon-img"></image>
+        <text class="menu-label">关系测试记录</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @tap="goToCollection">
         <image src="/static/images/album.png" class="menu-icon-img"></image>
-        <text class="menu-label">图鉴库</text>
+        <text class="menu-label">可爱图鉴库</text>
         <text class="menu-arrow">›</text>
       </view>
       <view class="menu-item" @tap="goToChangelog">
@@ -103,9 +90,8 @@
         <text class="menu-arrow">›</text>
       </view>
     </view>
-    
 
-    
+
     <!-- 昵称编辑弹窗 -->
     <view v-if="showNicknameModal" class="modal-overlay" @tap="closeNicknameModal">
       <view class="modal-content" @tap.stop>
@@ -133,60 +119,29 @@
           <view 
             :class="['gender-option', selectedGender === 'male' ? 'selected' : '']"
             @tap="selectGender('male')">
-            <text class="gender-emoji">♂️</text>
-            <text class="gender-text">男生</text>
+            <text class="gender-text">男的</text>
           </view>
           <view 
             :class="['gender-option', selectedGender === 'female' ? 'selected' : '']"
             @tap="selectGender('female')">
-            <text class="gender-emoji">♀️</text>
-            <text class="gender-text">女生</text>
+            <text class="gender-text">女的</text>
           </view>
           <view 
             :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
             @tap="selectGender('x')">
-            <text class="gender-emoji">🤫</text>
             <text class="gender-text">不告诉你</text>
           </view>
         </view>
-        <button class="save-gender-btn" @tap="saveGender">确定</button>
       </view>
     </view>
-    
-    <!-- 设置弹窗 -->
-    <view v-if="showSettingsModal" class="modal-overlay" @tap="closeSettingsModal">
-      <view class="modal-content settings-content" @tap.stop>
-        <view class="modal-header">
-          <text class="modal-title">设置</text>
-          <view class="modal-close" @tap="closeSettingsModal">×</view>
-        </view>
-        <view class="settings-list">
-          <view class="settings-item" @tap="editNickname">
-            <text class="settings-label">修改昵称</text>
-            <text class="settings-arrow">›</text>
-          </view>
-          <view class="settings-item" @tap="openGenderModal">
-            <text class="settings-label">修改性别</text>
-            <text class="settings-arrow">›</text>
-          </view>
-          <view class="settings-item" @tap="chooseImageAvatar">
-            <text class="settings-label">更换头像</text>
-            <text class="settings-arrow">›</text>
-          </view>
-        </view>
-        <view class="modal-actions">
-          <view class="modal-btn cancel-btn" @tap="closeSettingsModal">关闭</view>
-        </view>
-      </view>
-    </view>
-    
+
     <!-- 性别保密确认弹窗 -->
     <view v-if="showPrivacyConfirmModal" class="modal-overlay" @tap="closePrivacyConfirmModal">
       <view class="modal-content" @tap.stop>
-        <text class="modal-title">确认保密</text>
-        <text class="modal-desc">性别保密无法明确某些关系，你确定么？</text>
+        <text class="modal-title">确定保密？</text>
+        <text class="modal-desc">选择保密后，仍可在"我的"中随时修改</text>
         <view class="modal-actions">
-          <view class="modal-btn cancel-btn" @tap="closePrivacyConfirmModal">再想想</view>
+          <view class="modal-btn cancel-btn" @tap="closePrivacyConfirmModal">重新选择</view>
           <view class="modal-btn confirm-btn" @tap="confirmPrivacy">确定保密</view>
         </view>
       </view>
@@ -195,10 +150,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 
 const userStore = useUserStore();
+const { loading: storeLoading } = userStore;
+const matchCount = computed(() => {
+  return userStore.userData.relationship_match_count || 0;
+});
 const showNicknameModal = ref(false);
 const newNickname = ref('');
 const startDate = ref(Date.now());
@@ -259,94 +219,31 @@ const onChooseAvatar = (e) => {
   }
 };
 
-// 获取微信用户信息（昵称）
-const onGetUserInfo = (e) => {
-  console.log('onGetUserInfo e:', e);
-  // 增加更严格的空值检查
-  if (!e || !e.detail) {
-    console.log('事件对象为空');
-    return;
-  }
-  console.log('onGetUserInfo e.detail:', e.detail);
-  
-  if (e.detail.errMsg && e.detail.errMsg.includes('fail')) {
-    uni.showToast({
-      title: '获取昵称失败',
-      icon: 'none'
-    });
-    return;
-  }
-  
-  // 微信小程序 getUserInfo 返回的数据
-  const userInfo = e.detail.userInfo;
-  if (userInfo && userInfo.nickName) {
-    console.log('获取到微信昵称:', userInfo.nickName);
-    userStore.updateProfile({
-      nickname: userInfo.nickName.trim(),
-      avatar: userInfo.avatarUrl || userStore.userData.avatar
-    });
-    uni.showToast({
-      title: '昵称设置成功',
-      icon: 'success'
-    });
+// 微信昵称选择回调
+const onNicknameReview = (e) => {
+  if (e.detail && e.detail.nickname) {
+    userStore.updateProfile({ nickname: e.detail.nickname });
+    uni.showToast({ title: '昵称设置成功', icon: 'success' });
   } else {
-    console.log('未获取到 userInfo 或 nickName');
-    uni.showToast({
-      title: '未获取到昵称',
-      icon: 'none'
-    });
+    editNickname();
   }
 };
 
-// 从相册选择或拍照
-const chooseImageAvatar = () => {
-  uni.showActionSheet({
-    itemList: ['从相册选择', '拍照'],
-    success: (res) => {
-      if (res && res.tapIndex !== undefined && res.tapIndex !== null) {
-        if (res.tapIndex === 0) {
-          uni.chooseImage({
-            count: 1,
-            sizeType: ['compressed'],
-            sourceType: ['album'],
-            success: (chooseRes) => {
-              if (chooseRes && chooseRes.tempFilePaths && chooseRes.tempFilePaths.length > 0) {
-                const tempFilePath = chooseRes.tempFilePaths[0];
-                userStore.updateProfile({
-                  avatar: tempFilePath
-                });
-                uni.showToast({
-                  title: '头像更新成功',
-                  icon: 'success'
-                });
-              }
-            }
-          });
-        } else if (res.tapIndex === 1) {
-          uni.chooseImage({
-            count: 1,
-            sizeType: ['compressed'],
-            sourceType: ['camera'],
-            success: (chooseRes) => {
-              if (chooseRes && chooseRes.tempFilePaths && chooseRes.tempFilePaths.length > 0) {
-                const tempFilePath = chooseRes.tempFilePaths[0];
-                userStore.updateProfile({
-                  avatar: tempFilePath
-                });
-                uni.showToast({
-                  title: '头像更新成功',
-                  icon: 'success'
-                });
-              }
-            }
-          });
-        }
-      }
-    }
-  });
+// 直接点击昵称按钮，打开手动编辑弹窗（兼容open-type nickname可能不生效的情况）
+const onNicknameTap = () => {
+  editNickname();
 };
 
-// 编辑昵称
+// 性别角标显示
+const genderIcon = computed(() => {
+  const gender = userStore.userData.gender;
+  if (gender === 'male') return '/static/images/gender_m.png';
+  if (gender === 'female') return '/static/images/gender_f.png';
+  if (gender === 'x') return '/static/images/gender_x.png';
+  return '/static/images/gender_u.png';
+});
+
+// 编辑昵称（弹窗）
 const editNickname = () => {
   newNickname.value = userStore.userData.nickname || '';
   showNicknameModal.value = true;
@@ -376,44 +273,17 @@ const saveNickname = () => {
   closeNicknameModal();
 };
 
-// 注销账户
-const cancelAccount = () => {
-  uni.showModal({
-    title: '确认注销账户？',
-    content: '注销后，你的所有数据将被永久删除，且无法恢复。',
-    confirmText: '确认注销',
-    confirmColor: '#FA325A',
-    success: (res) => {
-      if (res.confirm) {
-        uni.showModal({
-          title: '再次确认',
-          content: '确定要注销账户吗？此操作不可逆！',
-          confirmText: '确定',
-          confirmColor: '#FA325A',
-          success: (res2) => {
-            if (res2.confirm) {
-              userStore.resetAllData();
-              uni.showToast({
-                title: '已注销',
-                icon: 'success'
-              });
-              setTimeout(() => {
-                uni.reLaunch({
-                  url: '/pages/index/index'
-                });
-              }, 1500);
-            }
-          }
-        });
-      }
-    }
-  });
-};
-
 // 跳转到历史记录
 const goToHistory = () => {
   uni.navigateTo({
     url: '/pages/history/history'
+  });
+};
+
+// 跳转到关系测试记录
+const goToMatchHistory = () => {
+  uni.navigateTo({
+    url: '/pages/history/history?tab=match'
   });
 };
 
@@ -460,18 +330,8 @@ const copyCuteId = () => {
 
 // 性别相关状态
 const showGenderModal = ref(false);
-const showSettingsModal = ref(false);
 const showPrivacyConfirmModal = ref(false);
 const selectedGender = ref('');
-
-// 获取性别文本
-const getGenderText = () => {
-  const gender = userStore.userData.gender;
-  if (gender === 'male') return '男生';
-  if (gender === 'female') return '女生';
-  if (gender === 'x') return '不告诉你';
-  return '未设置';
-};
 
 // 打开性别选择弹窗
 const openGenderModal = () => {
@@ -485,30 +345,19 @@ const closeGenderModal = () => {
   showGenderModal.value = false;
 };
 
-// 选择性别
+// 选择性别（点选直接保存，无需确定按钮）
 const selectGender = (gender) => {
   selectedGender.value = gender;
-};
 
-// 保存性别
-const saveGender = () => {
-  if (!selectedGender.value) {
-    uni.showToast({
-      title: '请选择性别',
-      icon: 'none'
-    });
-    return;
-  }
-  
-  // 如果选择"不告诉你"，需要二次确认
-  if (selectedGender.value === 'x') {
+  // 选择"保密"需要二次确认
+  if (gender === 'x') {
     showGenderModal.value = false;
     showPrivacyConfirmModal.value = true;
     return;
   }
-  
+
   userStore.updateProfile({
-    gender: selectedGender.value
+    gender: gender
   });
   uni.showToast({
     title: '性别更新成功',
@@ -538,17 +387,11 @@ const closePrivacyConfirmModal = () => {
   }, 100);
 };
 
-// 打开设置弹窗
-const openSettingsModal = () => {
-  showSettingsModal.value = true;
-};
-
-// 关闭设置弹窗
-const closeSettingsModal = () => {
-  showSettingsModal.value = false;
-};
-
 onMounted(() => {
+  userStore.loadUserData();
+});
+
+onShow(() => {
   userStore.loadUserData();
 });
 </script>
@@ -557,7 +400,7 @@ onMounted(() => {
 .page-container {
   min-height: 100vh;
   padding: 30rpx;
-  padding-bottom: 40rpx;
+  padding-bottom: 20rpx;
 }
 
 .fullscreen-bg {
@@ -619,10 +462,11 @@ onMounted(() => {
   display: none;
 }
 
-.avatar-edit-badge {
+/* 性别角标 */
+.gender-badge {
   position: absolute;
-  bottom: 0;
-  right: -8rpx;
+  bottom: -4rpx;
+  right: -4rpx;
   width: 48rpx;
   height: 48rpx;
   background: #ffffff;
@@ -635,9 +479,10 @@ onMounted(() => {
   box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.1);
 }
 
-.badge-icon {
+.gender-badge-icon {
   width: 32rpx;
   height: 32rpx;
+  display: block;
 }
 
 .user-avatar {
@@ -653,56 +498,41 @@ onMounted(() => {
   flex: 1;
 }
 
-.nickname-row {
+.nickname-btn {
   display: flex;
   align-items: center;
   gap: 12rpx;
-}
-
-.nickname-btn {
-  padding: 0;
+  padding: 16rpx 0;
   margin: 0;
   background: transparent;
   border: none;
-  line-height: 1;
+  line-height: 1.2;
   font-size: inherit;
+  min-height: 60rpx;
+  box-sizing: content-box;
 }
 
 .nickname-btn::after {
   border: none;
 }
 
-.nickname-placeholder {
-  font-size: 40rpx;
-  font-weight: 700;
-  color: #999999;
-  margin-bottom: 16rpx;
-}
-
 .user-nickname {
-  font-size: 40rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #000000;
-  margin-bottom: 16rpx;
-}
-
-.edit-nickname {
-  width: 44rpx;
-  height: 44rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .edit-icon-img {
   width: 36rpx;
   height: 36rpx;
+  flex-shrink: 0;
 }
 
 .cuteId-row {
   display: flex;
   align-items: center;
   gap: 12rpx;
+  margin-top: 2rpx;
 }
 
 .cuteId-label {
@@ -715,27 +545,6 @@ onMounted(() => {
   color: #646464;
   font-weight: 700;
   font-family: monospace;
-}
-
-.cuteId-copy {
-  font-size: 24rpx;
-  color: #646464;
-  margin-left: 12rpx;
-}
-
-.action-area {
-  flex-shrink: 0;
-}
-
-.logout-btn {
-  padding: 8rpx 20rpx;
-  background: #000000;
-  border-radius: 44rpx;
-}
-
-.logout-text {
-  font-size: 26rpx;
-  color: #ffffff;
 }
 
 .stats-card {
@@ -837,7 +646,7 @@ onMounted(() => {
 }
 
 .modal-container {
-  width: 500rpx;
+  width: 560rpx;
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 40rpx 28rpx;
@@ -856,7 +665,7 @@ onMounted(() => {
 }
 
 .modal-title {
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #000000;
   text-align: center;
@@ -898,39 +707,6 @@ onMounted(() => {
 .confirm-btn {
   background: linear-gradient(135deg, #FA325A 0%, #FF6B6B 100%);
   color: #ffffff;
-}
-
-/* 性别行样式 */
-.gender-row {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  margin-top: 8rpx;
-}
-
-.gender-label {
-  font-size: 24rpx;
-  color: #646464;
-}
-
-.gender-value {
-  font-size: 28rpx;
-  color: #000000;
-  font-weight: 500;
-}
-
-/* 设置按钮样式 */
-.settings-btn {
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16rpx;
-}
-
-.settings-icon {
-  font-size: 40rpx;
 }
 
 /* 性别选择弹窗样式 */
@@ -975,70 +751,9 @@ onMounted(() => {
   display: block;
 }
 
-.save-gender-btn {
-  width: 100%;
-  background-color: #000000;
-  color: #ffffff;
-  font-size: 28rpx;
-  font-weight: 600;
-  padding: 20rpx;
-  border-radius: 14rpx;
-  text-align: center;
-  border: none;
-}
-
-.save-gender-btn::after {
-  border: none;
-}
-
-/* 设置弹窗样式 */
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20rpx;
-}
-
-.modal-close {
-  font-size: 48rpx;
-  color: #999999;
-  line-height: 1;
-  padding: 8rpx;
-}
-
-.settings-content {
-  padding: 30rpx 40rpx;
-}
-
-.settings-list {
-  margin-bottom: 30rpx;
-}
-
-.settings-item {
-  display: flex;
-  align-items: center;
-  padding: 28rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.settings-label {
-  flex: 1;
-  font-size: 30rpx;
-  color: #000000;
-}
-
-.settings-arrow {
-  font-size: 40rpx;
-  color: #999999;
-}
-
 /* 弹窗描述文字 */
 .modal-desc {
-  font-size: 26rpx;
+  font-size: 28rpx;
   color: #666666;
   text-align: center;
   display: block;

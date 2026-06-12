@@ -29,14 +29,7 @@ imagePaths['tab_home'] = '/static/images/tab_home.png';
 imagePaths['tab_home_active'] = '/static/images/tab_home_active.png';
 imagePaths['unknown'] = '/static/images/unknown.png';
 imagePaths['unknown_icon'] = '/static/images/unknown_icon.png';
-imagePaths['poster'] = '/static/images/poster.png';
 imagePaths['delete'] = '/static/images/delete.png';
-imagePaths['tab_crush'] = '/static/images/tab_crush.png';
-imagePaths['tab_crush_active'] = '/static/images/tab_crush_active.png';
-imagePaths['tab_lab'] = '/static/images/tab_lab.png';
-imagePaths['tab_lab_active'] = '/static/images/tab_lab_active.png';
-imagePaths['tab_guide'] = '/static/images/tab_guide.png';
-imagePaths['tab_guide_active'] = '/static/images/tab_guide_active.png';
 
 function getPersonalityAvatar(personality) {
   const lowerPersonality = (personality || 'unknown').toLowerCase();
@@ -47,14 +40,6 @@ function getCampIconUrl(personality) {
   const camp = getCampGroup(personality);
   const iconKey = camp.toLowerCase() + '_icon';
   return imagePaths[iconKey] || imagePaths['unknown_icon'];
-}
-
-function getLogoUrl() {
-  return imagePaths['logo'];
-}
-
-function getTabIconUrl(iconName) {
-  return imagePaths[iconName] || '';
 }
 
 function getCampGroup(personality) {
@@ -82,8 +67,5 @@ function getCampGroup(personality) {
 export {
   getPersonalityAvatar,
   getCampIconUrl,
-  getLogoUrl,
-  getTabIconUrl,
-  getCampGroup,
-  imagePaths
+  getCampGroup
 };

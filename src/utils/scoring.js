@@ -1,8 +1,82 @@
 import scenarios from '../data/scenarios.js';
 import simpleScenarios from '../data/simple-scenarios.js';
+import officialPairs from '../data/officialPairs.js';
 
 const STORAGE_KEY = 'scenarioHistory';
 const MAX_HISTORY_COUNT = 5;
+
+// ===== 新关系等级体系常量 =====
+const LEVEL_MAP = {
+  LV5: { label: 'LV5', rarity: 'SSR', color: '#FFD700', emoji: '🔥' },
+  LV4: { label: 'LV4', rarity: 'SR',  color: '#9B59B6', emoji: '🧠' },
+  LV3: { label: 'LV3', rarity: 'R',   color: '#3498DB', emoji: '🤝' },
+  LV2: { label: 'LV2', rarity: 'N',   color: '#95A5A6', emoji: '👋' },
+  LV1: { label: 'LV1', rarity: 'F',   color: '#95A5A6', emoji: '💀' },
+  EGG: { label: '隐藏', rarity: '隐藏', color: '#FA325A', emoji: '🎁' },
+};
+
+// 5级×4列关系名
+const RELATION_NAMES = {
+  LV5: { '通用': '伯牙子期', '男女': '天生情侣', '男男': '父子', '女女': '母女' },
+  LV4: { '通用': '世另我',   '男女': '睡过的人', '男男': '亲兄弟', '女女': '好闺蜜' },
+  LV3: { '通用': '合伙人',   '男女': '夜店情人', '男男': '酒友',   '女女': '酒友' },
+  LV2: { '通用': '桃园结义', '男女': '桃园结义', '男男': '桃园结义', '女女': '桃园结义' },
+  LV1: { '通用': '微信好友', '男女': '微信好友', '男男': '微信好友', '女女': '微信好友' },
+};
+
+// 第一屏内容素材
+const FIRST_SCREEN_CONTENT = {
+  LV5: {
+    '通用': { quote: '"你俩上辈子可能是同一个人"', snapshot: '你们之间几乎没有信息差。\n你一张嘴TA就知道你要说什么。\n你还没生气TA就开始哄了。\n这种默契不是培养出来的，是出厂设置就写好的。', keywords: ['默契','同步','知音','双生'] },
+    '男女': { quote: '"月老拿钢筋给你们绑的红线"', snapshot: '你们是那种"在一起不用说话也不尴尬"的关系。\n你抛的梗TA能接，TA的沉默你能懂。\n吵架吵到一半两个人都忘了在吵什么。\n不是什么轰轰烈烈的爱情，但谁也离不开谁。', keywords: ['般配','舒适','长久','宿命'] },
+    '男男': { quote: '"除了血缘关系，这是最铁的"', snapshot: '他可能不会说好听的话，但你需要的时候他一定在。\n他骂你是为你好，他夸你是真觉得你行。\n你们之间没有那么多客套，有事说事，没事各忙各的。\n但这种关系，比很多整天腻在一起的朋友都牢靠。', keywords: ['兄弟','可靠','硬核','无言'] },
+    '女女': { quote: '"比闺蜜更深一层——是家人"', snapshot: '她是那个你半夜三点打电话也会接的人。\n你哭的时候她不一定会哄你，但她会陪着你哭完。\n你们吵过架、冷战过、互相拉黑过——\n但只要你说"我需要你"，她永远在。', keywords: ['羁绊','包容','无条件的','家'] },
+  },
+  LV4: {
+    '通用': { quote: '"你在TA身上看到了自己"', snapshot: '你们的成长路径可能不同，但终点是一样的。\n对同一件事的看法经常惊人地一致。\n你刚想说"我想吃火锅"，TA已经拿起外套了。\n不是刻意同步，是脑子长得一样。', keywords: ['镜面','同频','理解','自在'] },
+    '男女': { quote: '"你懂我深浅，我懂你长短"', snapshot: '你们之间该懂的都懂了。\n没有那么多弯弯绕绕，说话不用打草稿。\n在一起的时候是两个人，分开的时候是两个独立的人。\n这种关系最舒服的地方就是——不用装。', keywords: ['坦诚','自在','亲密','放松'] },
+    '男男': { quote: '"不是亲的，但胜似亲的"', snapshot: '一起扛过事、一起喝过酒、一起骂过老板。\n你借钱不用打借条，他借你的车不用问。\n平时可能几个月不联系，但一个电话就到。\n男人之间的友谊就是这么简单。', keywords: ['义气','信任','简单','长久'] },
+    '女女': { quote: '"上厕所都要手拉手的那种"', snapshot: '你们的聊天记录从上往下翻全是哈哈哈哈。\n一起骂过同一个男人，一起夸过同一件衣服。\n她知道你所有的秘密，包括你不想让别人知道的那种。\n你谈对象第一个要过她的关。', keywords: ['亲密','无话不说','陪伴','共享'] },
+  },
+  LV3: {
+    '通用': { quote: '"在一起能做事的，不止是朋友"', snapshot: '你们的关系建立在"能一起成事"的基础上。\n各有所长，互相信任，配合默契。\n私下不一定经常约饭，但工作上是最佳搭档。\n这种关系比朋友更务实，比同事更信任。', keywords: ['合作','信任','高效','务实'] },
+    '男女': { quote: '"有感觉，但不一定有未来"', snapshot: '你们的暧昧写在脸上。\n晚上一起疯的时候是真的开心。\n但天亮之后，你们都知道这段关系没有结果。\n不过没关系——当下的快乐也是快乐。', keywords: ['暧昧','热烈','短暂','尽兴'] },
+    '男男': { quote: '"能一起喝到天亮的那种"', snapshot: '你们的共同语言是杯酒。\n开心了喝，不开心了也喝。\n喝多了什么都能聊——平时不会说的话，酒桌上全说了。\n第二天谁都不提，但关系又近了一点。', keywords: ['兄弟','痛快','真实','解压'] },
+    '女女': { quote: '"能一起喝到天亮的那种"', snapshot: '你们的局从来不用客套。\n"出来喝一杯"＝"我有话想跟你说"。\n微醺的时候说的那些话，比清醒的时候真诚一百倍。\n第二天互相发消息："昨晚我没说什么不该说的吧？"', keywords: ['闺蜜','微醺','交心','解压'] },
+  },
+  LV2: {
+    '通用': { quote: '"刘关张看了都得说好"', snapshot: '你们的关系有仪式感。\n不一定天天见面，但见面了就是兄弟。\n你的事就是我的事——这句话不是说着玩的。\n这种关系不求多，有那么一两个就够了。', keywords: ['义气','承诺','可靠','长久'] },
+    '男女': { quote: '"刘关张看了都得说好"', snapshot: '你们的友情不带任何暧昧。\n就是单纯觉得这个人靠谱、值得交。\n有事互相撑，没事各自忙。\n这种纯粹的信任，比很多关系都难得。', keywords: ['纯粹','信任','坦荡','仗义'] },
+    '男男': { quote: '"刘关张看了都得说好"', snapshot: '你们的兄弟情是喝出来的，也是一起扛事扛出来的。\n平时各忙各的，但只要兄弟开口——\n没有第二句话，先帮了再说。\n男人的友情就是这么简单粗暴。', keywords: ['兄弟','义气','扛事','简单'] },
+    '女女': { quote: '"刘关张看了都得说好"', snapshot: '你们的友情不玩虚的。\n你被欺负了她是第一个冲上去的人。\n你成功了她是真心为你高兴的人。\n女人之间的义气，不比男人差。', keywords: ['义气','担当','真诚','守护'] },
+  },
+  LV1: {
+    '通用': { quote: '"列表好友，聊天记录为空的"', snapshot: '你们加了好友之后就没说过几句话。\n朋友圈偶尔点个赞，但从来没有私聊过。\n逢年过节群发的时候会想起来有这个联系人。\n说熟也不熟，说不熟…确实不太熟。', keywords: ['躺列','不熟','点赞之交','躺着'] },
+    '男女': { quote: '"列表好友，聊天记录为空的"', snapshot: '不知道什么时候加的，也不知道为什么没删。\n偶尔刷到TA朋友圈，才知道TA最近在干嘛。\n想过打个招呼，但不知道说什么。\n就一直这么躺着，躺着躺着就躺了几年。', keywords: ['躺列','不熟','过客','躺平'] },
+    '男男': { quote: '"列表好友，聊天记录为空的"', snapshot: '可能是以前的同学、前同事、游戏好友。\n以前还一起开黑，现在连上线时间都不重合了。\n没有删好友是因为——万一哪天又开黑呢。\n但大家都知道，那个"哪天"可能不会来了。', keywords: ['躺列','过去','淡了','怀念'] },
+    '女女': { quote: '"列表好友，聊天记录为空的"', snapshot: '可能是以前很熟的朋友。\n不知道从什么时候开始就不怎么说话了。\n你还记得TA的生日，但不会像以前那样卡点发了。\n不是关系不好了，是生活把你们推到不同的方向了。', keywords: ['躺列','淡了','成长','各自安好'] },
+  },
+};
+
+// 隐藏彩蛋配置（按优先级从高到低）
+const EASTER_EGGS = [
+  { name: '🧊 绝对零度', check: (ctx) => ctx.M === -1 && ctx.xCount === 0, rarity: '极稀有' },
+  { name: '🔒 狱友',    check: (ctx) => ctx.level === 'LV1' && ctx.xCount >= 2 && !ctx.isCoupleContext, rarity: '常见' },
+  { name: '🧨 炸了',    check: (ctx) => ctx.level === 'LV1' && ctx.column === '男女', rarity: '常见' },
+  { name: '🎭 谜人',    check: (ctx) => ctx.xCount >= 6, rarity: '常见' },
+  { name: '🫥 隐形人',  check: (ctx) => ctx.level === 'LV2' && ctx.xCount >= 2, rarity: '常见' },
+  { name: '👻 查无此人', check: (ctx) => ctx.level === 'LV1' && ctx.matchCount === 1, rarity: '中等' },
+  { name: '📇 已读不回', check: (ctx) => ctx.level === 'LV1' && ctx.xCount >= 1 && ctx.matchCount <= 1, rarity: '常见' },
+  { name: '🔄 镜像',    check: (ctx) => ctx.M === 0 && ctx.validCount === 4, rarity: '中等' },
+  { name: '🪞 雾中镜',  check: (ctx) => ctx.level === 'LV5' && ctx.xCount >= 1, rarity: '中等' },
+  { name: '🃏 明牌',    check: (ctx) => ctx.genderA === 'x' && ctx.genderB === 'x', rarity: '中等' },
+  { name: '🗿 石像',    check: (ctx) => ctx.level === 'LV1' && ctx.xCount === 0, rarity: '中等' },
+  { name: '🤝 塑料',    check: (ctx) => ctx.level === 'LV5' && ctx.column === '男女' && ctx.matchCount === 1, rarity: '中等' },
+  { name: '🌊 起伏',    check: (ctx) => ctx.matchCount >= 2 && false, rarity: '中等' },  // 需外部判断，默认false
+  { name: '🐉 龙与凤',  check: (ctx) => ctx.level === 'LV5' && ctx.column === '男女' && ctx.xCount >= 4, rarity: '极稀有' },
+  { name: '🎰 薛定谔',  check: (ctx) => false, rarity: '极稀有' },  // 需三次不同等级，需外部判断
+  { name: '⏳ 老友记',  check: (ctx) => false, rarity: '极稀有' },  // 需同人5次，需外部判断
+];
 
 const scoring = {
   getHistory: function() {
@@ -597,31 +671,6 @@ const scoring = {
     return { personalityCurve, dimensionCurves };
   },
 
-  calculateMatch: function(userA, userB) {
-    let matchScore = 0;
-    
-    const aScores = userA.rawScores || userA.raw_scores || {};
-    const bScores = userB.rawScores || userB.raw_scores || {};
-    
-    const keys = ['E', 'I', 'S', 'N', 'T', 'F', 'J', 'P'];
-    let totalDiff = 0;
-    let totalScore = 0;
-    
-    keys.forEach(key => {
-      const a = aScores[key] || 0;
-      const b = bScores[key] || 0;
-      totalDiff += Math.abs(a - b);
-      totalScore += a + b;
-    });
-    
-    const maxPossibleDiff = 120;
-    const similarity = 100 - (totalDiff / maxPossibleDiff) * 100;
-    
-    matchScore = Math.round(similarity);
-    
-    return Math.max(0, Math.min(100, matchScore));
-  },
-
   // 从百分比数据计算维度数据
   // 输入：{E, I, S, N, T, F, J, P} 0-100 百分比（结果页展示的最终分值）
   calculateDimensionData: function(percentages) {
@@ -671,9 +720,10 @@ const scoring = {
     return { value: mainLetter, percent: mainPercent };
   },
 
-  // 关系匹配算法 - 新算法
+  // ===== 关系匹配算法 v2 =====
   // userAData / userBData 应包含 {percentages: {E,I,S,N,T,F,J,P}, gender}
-  calculateRelationshipMatch: function(userAData, userBData) {
+  // opts: { matchCount: number } 可选，传入和同一个人匹配的次数用于隐藏彩蛋
+  calculateRelationshipMatch: function(userAData, userBData, opts = {}) {
     try {
       // 1. 从百分比数据提取维度数据
       const aDimData = this.calculateDimensionData(userAData.percentages || userAData.rawScores || userAData.raw_scores || {});
@@ -706,58 +756,114 @@ const scoring = {
         M = rawTotal / validCount;
       }
 
-      // 3. 判断是否为情侣语境
+      // 3. 性别列判定
+      const genderColumn = this._getGenderColumn(userAData.gender, userBData.gender);
+
+      // 4. 情侣语境
       const isCoupleContext = this._isCoupleContext(M, userAData.gender, userBData.gender);
-      
-      // 4. 情侣语境加分
+
+      // 5. 情侣语境微调加分（+0.05，不越级）
       if (isCoupleContext) {
-        M = Math.min(M + 0.2, 0.95);
+        M = Math.min(M + 0.05, 0.95);
       }
 
-      // 5. 判定等级
+      // 6. 判定等级（新5级）
       const level = this._determineLevel(M, xCount, validCount);
+      const levelConfig = LEVEL_MAP[level] || LEVEL_MAP.LV1;
 
-      // 6. 获取关系名
-      const relationName = this._getRelationName(level, userAData.gender, userBData.gender, isCoupleContext);
+      // 7. 检查隐藏彩蛋（优先于关系名）
+      const eggCtx = {
+        M, xCount, validCount, level,
+        column: genderColumn,
+        genderA: userAData.gender,
+        genderB: userBData.gender,
+        isCoupleContext,
+        matchCount: opts.matchCount || 1,
+        personalityA: userAData.personality || '',
+        personalityB: userBData.personality || '',
+      };
+      const easterEgg = this._checkEasterEgg(eggCtx);
 
-      // 7. 获取颜色
-      const color = this._getColor(level, xCount);
+      // 8. 如果触发隐藏彩蛋，覆盖关系名
+      let finalName = '';
+      let finalRarity = levelConfig.rarity;
+      let finalColor = levelConfig.color;
 
-      // 8. 狱友彩蛋
-      let finalRelationName = relationName;
-      let finalColor = color;
-      if (level === 'D' && xCount >= 2 && !isCoupleContext) {
-        finalRelationName = '狱友';
-        finalColor = '⚪';
+      if (easterEgg) {
+        finalName = easterEgg.name;
+        finalRarity = easterEgg.rarity;
+        finalColor = '#FA325A';
+      } else {
+        finalName = RELATION_NAMES[level]?.[genderColumn] || '未知关系';
       }
 
-      // 9. 描述文案（占位符，后续补充）
-      const description = this._getRelationDescription(level);
+      // 9. 第一屏内容
+      const screenContent = FIRST_SCREEN_CONTENT[level]?.[genderColumn] || FIRST_SCREEN_CONTENT.LV1?.['通用'] || {};
+
+      // 10. 查询官配信息
+      const officialPair = this._lookupOfficialPair(userAData.personality, userBData.personality);
+
+      // 11. 降级颜色（xCount ≥ 4 时稀有度降一级）
+      const downgraded = xCount >= 4;
 
       return {
-        relationName: finalRelationName,
-        color: finalColor,
+        // ===== 新字段（结果页使用） =====
         level: level,
-        description: description,
-        matchScore: Math.round((M + 1) * 50), // 转换为0-100分
+        levelLabel: levelConfig.label,
+        levelName: finalName,
+        rarity: downgraded ? this._downgradeRarity(finalRarity) : finalRarity,
+        rarityColor: downgraded ? this._downgradeColor(finalColor) : finalColor,
+
+        // ===== 第一屏内容 =====
+        soulQuote: screenContent.quote || '',
+        snapshot: screenContent.snapshot || '',
+        keywords: screenContent.keywords || [],
+
+        // ===== 隐藏彩蛋 =====
+        easterEgg: easterEgg ? {
+          name: easterEgg.name,
+          rarity: easterEgg.rarity,
+          color: '#FA325A'
+        } : null,
+
+        // ===== 官配信息 =====
+        officialPair: officialPair,
+
+        // ===== 原始数据 =====
+        matchScore: Math.round((M + 1) * 50),
         rawM: M,
         xCount: xCount,
         validCount: validCount,
-        isCoupleContext: isCoupleContext
+        isCoupleContext: isCoupleContext,
+        genderColumn: genderColumn,
+
+        // ===== 兼容旧字段（history.vue等仍使用） =====
+        relationName: finalName,
+        color: downgraded ? '⚪' : levelConfig.emoji,
+        description: screenContent.snapshot?.replace(/\n/g, '') || '',
       };
     } catch (error) {
       console.error('计算关系匹配失败:', error);
-      // 返回安全的默认值，防止程序卡住
       return {
-        relationName: '普通朋友',
-        color: '🔵',
-        level: 'B',
-        description: '这是一段独特的关系',
+        level: 'LV2',
+        levelLabel: 'LV2',
+        levelName: '微信好友',
+        rarity: 'N',
+        rarityColor: '#95A5A6',
+        soulQuote: '',
+        snapshot: '',
+        keywords: [],
+        easterEgg: null,
+        officialPair: null,
         matchScore: 50,
         rawM: 0,
         xCount: 0,
         validCount: 0,
-        isCoupleContext: false
+        isCoupleContext: false,
+        genderColumn: '通用',
+        relationName: '微信好友',
+        color: '👋',
+        description: '',
       };
     }
   },
@@ -771,134 +877,120 @@ const scoring = {
     return count;
   },
 
+  _getGenderColumn: function(aGender, bGender) {
+    if (!aGender || !bGender || aGender === 'x' || bGender === 'x') return '通用';
+    if (aGender !== bGender) return '男女';
+    if (aGender === 'male') return '男男';
+    if (aGender === 'female') return '女女';
+    return '通用';
+  },
+
   _isCoupleContext: function(M, aGender, bGender) {
-    // 灵魂知己（S级）+ 双方为异性
     return M >= 0.9 && aGender && bGender && aGender !== bGender;
   },
 
   _determineLevel: function(M, xCount, validCount) {
-    if (validCount === 0) {
-      return 'B';
-    }
+    if (validCount === 0) return 'LV2';
 
     if (M >= 0.9) {
-      return xCount <= 1 ? 'S' : 'C1';
+      return xCount <= 1 ? 'LV5' : 'LV4';
     } else if (M >= 0.7) {
-      return 'C1';
-    } else if (M >= 0.5) {
-      return 'C2';
+      return 'LV4';
     } else if (M >= 0.3) {
-      return 'C3';
-    } else if (M >= -0.2) {
-      return 'B';
+      return 'LV3';
     } else if (M >= -0.4) {
-      return xCount >= 1 ? 'M1' : 'M2';
-    } else if (M >= -0.6) {
-      return xCount <= 1 ? 'M2' : 'A';
-    } else if (M >= -0.8) {
-      return 'A';
+      return 'LV2';
     } else {
-      return xCount <= 1 ? 'D' : 'A';
+      return 'LV1';
     }
   },
 
-  _getRelationName: function(level, aGender, bGender, isCouple) {
-    const isSameGender = aGender && bGender && aGender === bGender;
-    const isDiffGender = aGender && bGender && aGender !== bGender;
-    const isMale = aGender === 'male' || bGender === 'male';
-    const isFemale = aGender === 'female' || bGender === 'female';
-
-    const RELATION_MAP = {
-      S: {
-        couple: '灵魂伴侣',
-        friendM: '灵魂知己',
-        friendF: '灵魂知己',
-        male: '孪生兄弟',
-        female: '孪生姐妹',
-        default: '灵魂知己'
-      },
-      C1: { default: '脑波同频' },
-      C2: { sameGender: '桃园结义', default: '脑波同频' },
-      C3: { couple: '欢喜冤家', default: '师徒' },
-      M1: { couple: '老夫老妻', sameGender: '死党', female: '闺蜜', default: '臭味相投' },
-      B: { default: '寡淡如水' },
-      M2: { couple: '需要磨合', default: '臭味相投' },
-      A: { default: '礼貌距离' },
-      D: { couple: '冤家情侣', sameGender: '死对头', female: '塑料姐妹', male: '塑料兄弟', default: '冤家情侣' },
-      XXXX: { default: '纯纯白给' },
-      JAIL: { default: '狱友' }
-    };
-
-    const levelData = RELATION_MAP[level] || RELATION_MAP.B;
-
-    if (isCouple && levelData.couple) {
-      return levelData.couple;
-    }
-
-    if (isSameGender && levelData.sameGender) {
-      return levelData.sameGender;
-    }
-
-    if (isFemale && levelData.female) {
-      return levelData.female;
-    }
-
-    if (isMale && levelData.male) {
-      return levelData.male;
-    }
-
-    if (isDiffGender && (levelData.friendM || levelData.friendF)) {
-      return isMale ? levelData.friendM || levelData.default : levelData.friendF || levelData.default;
-    }
-
-    return levelData.default;
-  },
-
-  _getColor: function(level, xCount) {
-    const defaultColor = (() => {
-      switch (level) {
-        case 'S':
-        case 'C1':
-        case 'C2':
-          return '🟡';
-        case 'C3':
-        case 'M1':
-          return '🟣';
-        case 'B':
-        case 'M2':
-        case 'A':
-        case 'D':
-          return '🔵';
-        default:
-          return '⚪';
+  _checkEasterEgg: function(ctx) {
+    for (const egg of EASTER_EGGS) {
+      try {
+        if (egg.check(ctx)) return egg;
+      } catch (e) {
+        continue;
       }
-    })();
-
-    if (xCount >= 2) {
-      const downgrade = { '🟡': '🟣', '🟣': '🔵', '🔵': '⚪' };
-      return downgrade[defaultColor] || '⚪';
     }
-
-    return defaultColor;
+    return null;
   },
 
-  _getRelationDescription: function(level) {
-    // 占位符描述，后续补充
-    const descriptions = {
-      S: '你们是最懂彼此的人，心灵深处有着惊人的默契。',
-      C1: '你们的想法总是能同步，脑波频率高度一致。',
-      C2: '你们像结拜兄弟一样，有着深厚的情谊。',
-      C3: '吵吵闹闹，却又离不开对方。',
-      M1: '像老夫老妻一样，互相包容理解。',
-      B: '关系平淡如水，不会太近也不会太远。',
-      M2: '需要时间磨合，臭味相投也不错。',
-      A: '保持礼貌的距离，彼此尊重。',
-      D: '冤家路窄，却又彼此牵挂。',
-      XXXX: '纯纯白给，毫无默契可言。',
-      JAIL: '狱友情深，一起扛过！'
+  _lookupOfficialPair: function(personalityA, personalityB) {
+    if (!personalityA || !personalityB) return null;
+    const cleanedA = personalityA.toUpperCase();
+    const cleanedB = personalityB.toUpperCase();
+    // 双向查找
+    const pair = officialPairs[cleanedA];
+    if (pair && pair.code === cleanedB) {
+      return { name: pair.name, intro: pair.intro || '' };
+    }
+    const pairB = officialPairs[cleanedB];
+    if (pairB && pairB.code === cleanedA) {
+      return { name: pairB.name, intro: pairB.intro || '' };
+    }
+    return null;
+  },
+
+  _downgradeRarity: function(rarity) {
+    const map = { 'SSR': 'SR', 'SR': 'R', 'R': 'N', 'N': 'F', 'F': 'F' };
+    return map[rarity] || 'N';
+  },
+
+  _downgradeColor: function(color) {
+    const map = { '#FFD700': '#9B59B6', '#9B59B6': '#3498DB', '#3498DB': '#95A5A6', '#95A5A6': '#95A5A6' };
+    return map[color] || '#95A5A6';
+  },
+
+  // 旧记录迁移兼容：将旧等级映射到新等级的新名字
+  // 用于 history.vue 和 crush-result.vue 展示旧匹配记录
+  migrateLegacyMatchData: function(oldMatchData, genderColumn) {
+    if (!oldMatchData) return null;
+    const col = genderColumn || '通用';
+    const oldLevel = oldMatchData.level || '';
+    const oldName = oldMatchData.relationName || '';
+
+    // 旧等级 → 新等级
+    const legacyLevelMap = {
+      'S': 'LV5', 'C1': 'LV4', 'C2': 'LV4', 'C3': 'LV3',
+      'M1': 'LV3', 'B': 'LV2', 'M2': 'LV2', 'A': 'LV1', 'D': 'LV1',
+      'XXXX': 'LV1', 'JAIL': 'LV5',
     };
-    return descriptions[level] || '这是一段独特的关系。';
-  }
+    const newLevel = legacyLevelMap[oldLevel] || 'LV2';
+    const levelConfig = LEVEL_MAP[newLevel] || LEVEL_MAP.LV2;
+
+    // 尝试从旧名推断语境列
+    let column = col;
+    if (col === '通用' && oldName) {
+      // 根据个别旧名反向推断
+      const coupleNames = ['灵魂伴侣', '老夫老妻', '欢喜冤家', '冤家情侣'];
+      const maleNames = ['孪生兄弟', '死对头', '塑料兄弟'];
+      const femaleNames = ['孪生姐妹', '闺蜜'];
+      if (coupleNames.includes(oldName)) column = '男女';
+      else if (maleNames.includes(oldName)) column = '男男';
+      else if (femaleNames.includes(oldName)) column = '女女';
+    }
+
+    // 获取新名字（通用列兜底）
+    const newName = RELATION_NAMES[newLevel]?.[column] || RELATION_NAMES[newLevel]?.['通用'] || oldName;
+    const screenContent = FIRST_SCREEN_CONTENT[newLevel]?.[column] || FIRST_SCREEN_CONTENT[newLevel]?.['通用'] || {};
+
+    return {
+      level: newLevel,
+      levelLabel: levelConfig.label,
+      levelName: newName,
+      rarity: levelConfig.rarity,
+      rarityColor: levelConfig.color,
+      soulQuote: screenContent.quote || '',
+      snapshot: screenContent.snapshot || '',
+      keywords: screenContent.keywords || [],
+      matchScore: oldMatchData.matchScore || 50,
+      relationName: newName,
+      color: levelConfig.emoji,
+      description: oldMatchData.description || '',
+      _isMigrated: true,
+    };
+  },
 };
 
 export default scoring;

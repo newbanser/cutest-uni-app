@@ -168,8 +168,8 @@ page {
   position: absolute;
   top: 14rpx;
   right: 14rpx;
-  width: 100px;
-  height: 90px;
+  width: 180rpx;
+  height: 180rpx;
   opacity: 0.1;
   z-index: 1;
 }

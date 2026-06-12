@@ -86,7 +86,7 @@ onShow(() => {
 .page-container {
   min-height: 100vh;
   background: #f5f5f5;
-  padding: 24rpx;
+  padding: 24rpx 24rpx 20rpx;
 }
 
 .intro-card {

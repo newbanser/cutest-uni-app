@@ -7,24 +7,22 @@
       <text class="progress-text">{{ currentIndex + 1 }} / {{ totalScenarios }}</text>
     </view>
     
-    <view class="privacy-modal" v-if="showPrivacyModal">
-      <view class="privacy-modal-content" @tap.stop>
-        <text class="privacy-title">测试方式</text>
-        <text class="privacy-desc">让 {{ inviterCuteid }} 知道你测了，还是悄悄看看结果？</text>
-        <view class="privacy-options">
-          <view class="privacy-option primary" @tap.stop="choosePrivacy(true)">
-            <text class="privacy-option-icon">🔒</text>
-            <text class="privacy-option-text">偷偷测试</text>
+    <view class="modal-overlay" v-if="showPrivacyModal">
+      <view class="modal-content" @tap.stop>
+        <text class="modal-title">测试方式</text>
+        <text class="modal-desc">让 {{ inviterCuteid }} 知道你测了，还是悄悄看看结果？</text>
+        <view class="gender-options">
+          <view class="gender-option" :class="{ active: true }" @tap.stop="choosePrivacy(true)">
+            <text class="gender-text">🔒 偷偷测试</text>
           </view>
-          <view class="privacy-option" @tap.stop="choosePrivacy(false)">
-            <text class="privacy-option-icon">💌</text>
-            <text class="privacy-option-text">让TA知道</text>
+          <view class="gender-option" :class="{ active: false }" @tap.stop="choosePrivacy(false)">
+            <text class="gender-text">💌 让TA知道</text>
           </view>
         </view>
       </view>
     </view>
 
-    <view class="confirm-modal" v-if="showConfirmModal" @tap="closeConfirmModal">
+    <view class="modal-overlay" v-if="showConfirmModal" @tap="closeConfirmModal">
       <view class="modal-content" @tap.stop>
         <text class="modal-title">确认交卷</text>
         <text class="modal-desc">你已完成所有题目，确定要提交答案吗？</text>
@@ -35,7 +33,7 @@
       </view>
     </view>
 
-    <view class="confirm-modal" v-if="showGenderModal" @tap="closeGenderModal">
+    <view class="modal-overlay" v-if="showGenderModal" @tap="closeGenderModal">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeGenderModal">×</view>
         <text class="modal-title">你的性别是？</text>
@@ -43,19 +41,16 @@
           <view 
             :class="['gender-option', selectedGender === 'male' ? 'selected' : '']"
             @tap.stop="selectGender('male')">
-            <text class="gender-emoji">♂️</text>
-            <text class="gender-text">男生</text>
+            <text class="gender-text">男的</text>
           </view>
           <view 
             :class="['gender-option', selectedGender === 'female' ? 'selected' : '']"
             @tap.stop="selectGender('female')">
-            <text class="gender-emoji">♀️</text>
-            <text class="gender-text">女生</text>
+            <text class="gender-text">女的</text>
           </view>
           <view 
             :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
             @tap.stop="selectGender('x')">
-            <text class="gender-emoji">🤫</text>
             <text class="gender-text">不告诉你</text>
           </view>
         </view>
@@ -64,7 +59,7 @@
     </view>
 
     <!-- 性别保密确认弹窗 -->
-    <view class="confirm-modal" v-if="showPrivacyConfirmModal" @tap="closePrivacyConfirmModal">
+    <view class="modal-overlay" v-if="showPrivacyConfirmModal" @tap="closePrivacyConfirmModal">
       <view class="modal-content" @tap.stop>
         <view class="modal-close" @tap="closePrivacyConfirmModal">×</view>
         <text class="modal-title">确定保密？</text>
@@ -104,7 +99,7 @@
 
     <view class="button-section">
       <view class="prev-btn" v-if="currentIndex > 0" @tap="prevQuestion" @click="prevQuestion">
-        上一题
+        返回上题
       </view>
     </view>
 
@@ -195,7 +190,8 @@ const openGenderModal = () => {
     // 延迟执行，确保弹窗完全关闭
     setTimeout(() => {
       const inviter = uni.getStorageSync('inviterCuteid');
-      if (inviter) {
+      const matchTarget = uni.getStorageSync('matchTarget');
+      if (inviter && !matchTarget) {
         inviterCuteid.value = inviter;
         showPrivacyModal.value = true;
       } else {
@@ -237,7 +233,8 @@ const handleGenderSubmit = () => {
   // 延迟执行，确保弹窗完全关闭
   setTimeout(() => {
     const inviter = uni.getStorageSync('inviterCuteid');
-    if (inviter) {
+    const matchTarget = uni.getStorageSync('matchTarget');
+    if (inviter && !matchTarget) {
       inviterCuteid.value = inviter;
       showPrivacyModal.value = true;
     } else {
@@ -254,7 +251,8 @@ const confirmPrivacy = () => {
   // 延迟执行，确保弹窗完全关闭
   setTimeout(() => {
     const inviter = uni.getStorageSync('inviterCuteid');
-    if (inviter) {
+    const matchTarget = uni.getStorageSync('matchTarget');
+    if (inviter && !matchTarget) {
       inviterCuteid.value = inviter;
       showPrivacyModal.value = true;
     } else {
@@ -416,26 +414,22 @@ const doFinishAnalysis = async (isPrivate) => {
     console.log('[DEBUG] matchTarget value:', matchTarget, 'truthy:', !!matchTarget);
     
     if (matchTarget) {
-      // 如果有匹配目标，直接进行匹配流程
-      console.log('[DEBUG] 检测到有匹配目标，直接处理匹配...');
-      
-      // 先确认是否要查看匹配度
-      uni.showModal({
-        title: '匹配邀请',
-        content: `收到好友的人格密语邀请！是否查看你们的匹配度？`,
-        confirmText: '立即查看',
-        cancelText: '偷偷测试',
-        success: (res) => {
-          if (res.confirm) {
-            processMatch(matchTarget, false, gender, latestRecord);
-          } else {
-            processMatch(matchTarget, true, gender, latestRecord);
-          }
-        }
-      });
+      processMatch(matchTarget, isPrivate, gender, latestRecord);
+      return;
+    }
+
+    const pendingRelationTest = uni.getStorageSync('pendingRelationTest');
+    console.log('[DEBUG] pendingRelationTest:', pendingRelationTest, 'truthy:', !!pendingRelationTest);
+    if (pendingRelationTest) {
+      uni.removeStorageSync('pendingRelationTest');
+      uni.setStorageSync('fromRelationTest', true);
+      console.log('[DEBUG] fromRelationTest 已设置为 true，即将跳转 xbti-result');
     } else {
-      // 没有匹配目标，跳转到结果页
-      uni.redirectTo({
+      console.log('[DEBUG] pendingRelationTest 为空，正常跳转 xbti-result（非关系测试流程）');
+    }
+
+    // 跳转到结果页
+    uni.redirectTo({
         url: '/pages/xbti-result/xbti-result',
         success: () => {
           console.log('[DEBUG] redirectTo 跳转成功');
@@ -449,7 +443,6 @@ const doFinishAnalysis = async (isPrivate) => {
           });
         }
       });
-    }
     
   } catch (error) {
     console.error('[DEBUG] doFinishAnalysis 异常:', error);
@@ -483,7 +476,7 @@ const processMatch = (friendCuteId, isPrivate, myGender, latestRecord) => {
   if (uni.cloud) {
     uni.cloud.callFunction({
       name: 'getPersonality',
-      data: { cuteId: friendCuteId },
+      data: { cuteid: friendCuteId },
       success: (res) => {
         clearTimeout(timeoutId);
         console.log(`[processMatch] getPersonality 成功, res:`, res);
@@ -563,33 +556,77 @@ const processMatchResult = (friendPersonalityData, friendCuteId, isPrivate, myGe
   const matchResult = scoring.calculateRelationshipMatch(myData, friendData);
   
   console.log('匹配结果:', matchResult);
-  
+
+  // 判断是否来自链接流程（好友分享的链接），交换 userA/userB
+  const fromLink = uni.getStorageSync('fromLink');
+  uni.removeStorageSync('fromLink');
+
+  const initiatorCuteId = fromLink ? friendCuteId : myCuteId;
+  const initiatorPersonality = fromLink ? friendPersonality : myPersonality;
+  const initiatorData = fromLink ? friendData.percentages : myData.percentages;
+  const targetCuteId = fromLink ? myCuteId : friendCuteId;
+  const targetPersonality = fromLink ? myPersonality : friendPersonality;
+  const targetData = fromLink ? myData.percentages : friendData.percentages;
+
   // 保存完整的匹配结果
   const savedMatchResult = {
-    userA: { 
-      cuteId: friendCuteId, 
-      personalityCode: friendPersonality, 
-      personality: friendPersonality, 
-      percentages: friendData.percentages 
-    },
-    userB: { 
-      cuteId: myCuteId, 
-      personalityCode: myPersonality, 
-      personality: myPersonality, 
-      percentages: myData.percentages 
-    },
-    matchScore: matchResult.matchScore, 
+    userA: { cuteId: targetCuteId, personalityCode: targetPersonality, personality: targetPersonality, percentages: targetData },
+    userB: { cuteId: initiatorCuteId, personalityCode: initiatorPersonality, personality: initiatorPersonality, percentages: initiatorData },
+    matchScore: matchResult.matchScore,
     matchData: matchResult,
-    isPrivate
+    isPrivate,
+    source: fromLink ? 'link' : 'manual'
   };
-  
+
   uni.setStorageSync('matchResult', savedMatchResult);
+
+  // 保存到 matchResultsMap（按好友 cuteId 缓存，后续链接重复进入可直达结果）
+  const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
+  matchResultsMap[friendCuteId] = savedMatchResult;
+  uni.setStorageSync('matchResultsMap', matchResultsMap);
+
+  // 保存到匹配记录列表
+  const matchRecords = uni.getStorageSync('matchRecords') || [];
+  const exists = matchRecords.some(r =>
+    (r.userA?.cuteId === friendCuteId && r.userB?.cuteId === myCuteId) ||
+    (r.userA?.cuteId === myCuteId && r.userB?.cuteId === friendCuteId)
+  );
+  if (!exists) {
+    matchRecords.push({
+      userA: { cuteId: fromLink ? myCuteId : friendCuteId, personalityCode: targetPersonality },
+      userB: { cuteId: fromLink ? friendCuteId : myCuteId, personalityCode: initiatorPersonality },
+      matchData: matchResult,
+      source: fromLink ? 'link' : 'manual',
+      timestamp: Date.now()
+    });
+    uni.setStorageSync('matchRecords', matchRecords);
+  }
   uni.setStorageSync('matchTarget', '');
-  
+
+  // 同步保存到云端，双方均可查看记录数
+  // 链接流程：发起方是分享链接的人，不是本地调用者
+  uni.cloud.callFunction({
+    name: 'createMatch',
+    data: {
+      myCuteId: fromLink ? friendCuteId : myCuteId,
+      friendCuteId: fromLink ? myCuteId : friendCuteId,
+      matchResult: matchResult,
+      isPrivate: isPrivate,
+      source: fromLink ? 'link' : 'manual',
+      timestamp: Date.now(),
+      initiatorPersonality: initiatorPersonality,
+      targetPersonality: targetPersonality
+    }
+  }).then(res => {
+    console.log('[analysis-simple processMatchResult] 云端保存匹配记录成功:', res);
+  }).catch(err => {
+    console.log('[analysis-simple processMatchResult] 云端保存匹配记录失败:', err);
+  });
+
   setTimeout(() => {
     uni.hideLoading();
     uni.navigateTo({ 
-      url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(friendCuteId)}&matchResult=${encodeURIComponent(JSON.stringify(matchResult))}`
+      url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(friendCuteId)}`
     });
   }, 100);
 };
@@ -775,7 +812,7 @@ page {
   text-align: center;
 }
 
-.confirm-modal {
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -789,7 +826,7 @@ page {
 }
 
 .modal-content {
-  width: 600rpx;
+  width: 560rpx;
   background: #fff;
   border-radius: 16rpx;
   padding: 48rpx 40rpx;
@@ -797,7 +834,7 @@ page {
 }
 
 .modal-container {
-  width: 500rpx;
+  width: 560rpx;
   background: #fff;
   border-radius: 16rpx;
   padding: 40rpx 28rpx;
@@ -816,18 +853,19 @@ page {
 }
 
 .modal-title {
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 700;
-  color: #000;
+  color: #000000;
   display: block;
   margin-bottom: 32rpx;
 }
 
 .modal-desc {
   font-size: 28rpx;
-  color: #999;
+  color: #666666;
+  text-align: center;
   display: block;
-  margin-bottom: 40rpx;
+  margin-bottom: 32rpx;
 }
 
 .modal-buttons {
@@ -971,77 +1009,5 @@ page {
 
 button::after {
   border: none;
-}
-
-.privacy-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.privacy-modal-content {
-  width: 80%;
-  max-width: 600rpx;
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 48rpx 32rpx;
-  text-align: center;
-}
-
-.privacy-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #333;
-  display: block;
-  margin-bottom: 20rpx;
-}
-
-.privacy-desc {
-  font-size: 28rpx;
-  color: #999;
-  display: block;
-  margin-bottom: 40rpx;
-}
-
-.privacy-options {
-  display: flex;
-  gap: 24rpx;
-}
-
-.privacy-option {
-  flex: 1;
-  padding: 32rpx 20rpx;
-  background: #f8f8f8;
-  border-radius: 24rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: all 0.2s ease;
-  
-  &.primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    
-    .privacy-option-text {
-      color: #fff;
-    }
-  }
-}
-
-.privacy-option-icon {
-  font-size: 48rpx;
-  margin-bottom: 16rpx;
-}
-
-.privacy-option-text {
-  font-size: 28rpx;
-  font-weight: 500;
-  color: #666;
 }
 </style>

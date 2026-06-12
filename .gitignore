@@ -20,9 +20,13 @@ yarn-error.log*
 # Uni-app compiled
 dist/
 unpackage/
+uni/
 
 # Server logs
 *.log
+
+# Claude Code
+.claude/
 
 # Temporary files
 *.tmp

@@ -35,14 +35,14 @@
 
     <view class="button-section">
       <view class="prev-btn" v-if="currentIndex > 0" @tap="prevQuestion" @click="prevQuestion">
-        上一题
+        返回上题
       </view>
     </view>
 
-    <view class="confirm-modal" v-if="showConfirmModal" @tap="closeConfirmModal">
+    <view class="modal-overlay" v-if="showConfirmModal" @tap="closeConfirmModal">
       <view class="modal-content" @tap.stop>
-        <text class="modal-title">确认提交？</text>
-        <text class="modal-desc">提交后将无法修改答案</text>
+        <text class="modal-title">确认交卷</text>
+        <text class="modal-desc">你已完成所有题目，确定要提交答案吗？</text>
         <view class="modal-buttons">
           <view class="modal-btn cancel-btn" @tap="closeConfirmModal">我再想想</view>
           <view class="modal-btn submit-btn" @tap="openGenderModal">现在交卷</view>
@@ -50,7 +50,7 @@
       </view>
     </view>
 
-    <view class="confirm-modal" v-if="showPrivacyModal">
+    <view class="modal-overlay" v-if="showPrivacyModal">
       <view class="modal-content" @tap.stop>
         <text class="modal-title">测试方式</text>
         <text class="modal-desc">让 {{ inviterCuteid }} 知道你测了，还是悄悄看看结果？</text>
@@ -65,7 +65,7 @@
       </view>
     </view>
 
-    <view class="confirm-modal" v-if="showGenderModal" @tap="closeGenderModal">
+    <view class="modal-overlay" v-if="showGenderModal" @tap="closeGenderModal">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeGenderModal">×</view>
         <text class="modal-title">你的性别是？</text>
@@ -73,19 +73,16 @@
           <view 
             :class="['gender-option', selectedGender === 'male' ? 'selected' : '']"
             @tap.stop="selectGender('male')">
-            <text class="gender-emoji">♂️</text>
-            <text class="gender-text">男生</text>
+            <text class="gender-text">男的</text>
           </view>
           <view 
             :class="['gender-option', selectedGender === 'female' ? 'selected' : '']"
             @tap.stop="selectGender('female')">
-            <text class="gender-emoji">♀️</text>
-            <text class="gender-text">女生</text>
+            <text class="gender-text">女的</text>
           </view>
           <view 
             :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
             @tap.stop="selectGender('x')">
-            <text class="gender-emoji">🤫</text>
             <text class="gender-text">不告诉你</text>
           </view>
         </view>
@@ -94,7 +91,7 @@
     </view>
 
     <!-- 性别保密确认弹窗 -->
-    <view class="confirm-modal" v-if="showPrivacyConfirmModal" @tap="closePrivacyConfirmModal">
+    <view class="modal-overlay" v-if="showPrivacyConfirmModal" @tap="closePrivacyConfirmModal">
       <view class="modal-content" @tap.stop>
         <view class="modal-close" @tap="closePrivacyConfirmModal">×</view>
         <text class="modal-title">确定保密？</text>
@@ -192,7 +189,8 @@ const openGenderModal = () => {
     // 延迟执行，确保弹窗完全关闭
     setTimeout(() => {
       const inviter = uni.getStorageSync('inviterCuteid');
-      if (inviter) {
+      const matchTarget = uni.getStorageSync('matchTarget');
+      if (inviter && !matchTarget) {
         inviterCuteid.value = inviter;
         showPrivacyModal.value = true;
       } else {
@@ -234,7 +232,8 @@ const handleGenderSubmit = () => {
   // 延迟执行，确保弹窗完全关闭
   setTimeout(() => {
     const inviter = uni.getStorageSync('inviterCuteid');
-    if (inviter) {
+    const matchTarget = uni.getStorageSync('matchTarget');
+    if (inviter && !matchTarget) {
       inviterCuteid.value = inviter;
       showPrivacyModal.value = true;
     } else {
@@ -251,7 +250,8 @@ const confirmPrivacy = () => {
   // 延迟执行，确保弹窗完全关闭
   setTimeout(() => {
     const inviter = uni.getStorageSync('inviterCuteid');
-    if (inviter) {
+    const matchTarget = uni.getStorageSync('matchTarget');
+    if (inviter && !matchTarget) {
       inviterCuteid.value = inviter;
       showPrivacyModal.value = true;
     } else {
@@ -301,7 +301,7 @@ const doFinishAnalysis = async (isPrivate) => {
     const newPercentages = scoring.getPercentages(rawScores);
     const newPersonality = scoring.determinePersonality(rawScores);
 
-    const gender = userStore.userData.gender || 'male';
+    const gender = userStore.userData.gender || '';
     const view = {
       id: 'view_' + Date.now(),
       timestamp: Date.now(),
@@ -325,98 +325,202 @@ const doFinishAnalysis = async (isPrivate) => {
     console.log('[DEBUG] analysis data saved to local storage');
     
     const matchTarget = uni.getStorageSync('matchTarget');
-    console.log('[DEBUG] analysis matchTarget:', matchTarget);
-    
-    const isTabBarPage = !!matchTarget;
-    const redirectUrl = matchTarget ? '/pages/index/index' : '/pages/xbti-result/xbti-result';
-    console.log('[DEBUG] analysis preparing to redirect to:', redirectUrl, 'isTabBar:', isTabBarPage);
-    
-    // 先调用云函数保存到数据库
-    const saveCloudData = async () => {
-      try {
-        console.log('[DEBUG] analysis executing cloud function...');
-        const personalityInfo = personalities[newPersonality] || personalities['unknown'];
-        if (uni.cloud) {
-          await new Promise((resolve, reject) => {
-            uni.cloud.callFunction({
-              name: 'savePersonality',
-              data: {
-                cuteId: userStore.userData.cuteId,
-                personalityCode: newPersonality,
-                personalityName: personalityInfo.name || '',
-                campName: personalityInfo.camp || '',
-                dimensions: personalityInfo.dimensionTags || [],
-                percentages: newPercentages,
-                gender: gender
-              },
-              success: (res) => {
-                console.log('[DEBUG] analysis 云函数成功:', res);
-                resolve();
-              },
-              fail: (err) => {
-                console.error('[DEBUG] analysis 云函数失败:', err);
-                resolve(); // 即使失败也继续，不要阻塞流程
-              }
-            });
+    console.log('[DEBUG] analysis matchTarget:', JSON.stringify(matchTarget), 'type:', typeof matchTarget);
+
+    if (matchTarget) {
+      processMatch(matchTarget, isPrivate, gender, view);
+      return;
+    } else {
+      // 没有匹配目标，跳转到结果页
+      uni.redirectTo({
+        url: '/pages/xbti-result/xbti-result',
+        success: () => {
+          console.log('[DEBUG] analysis redirectTo success');
+        },
+        fail: (err) => {
+          console.error('[DEBUG] analysis redirectTo fail:', err);
+          uni.showToast({
+            title: '跳转失败，请重试',
+            icon: 'none',
+            duration: 2000
           });
         }
-      } catch (e) {
-        console.error('[DEBUG] analysis cloud function error:', e);
-      }
-    };
-    
-    // 先保存到云端
-    await saveCloudData();
-    
-    // 再跳转页面
-    setTimeout(() => {
-      console.log('[DEBUG] analysis executing redirect...');
-      try {
-        if (isTabBarPage) {
-          // 跳转到 tabBar 页面必须用 switchTab
-          uni.switchTab({
-            url: redirectUrl,
-            success: () => {
-              console.log('[DEBUG] analysis switchTab success');
-            },
-            fail: (err) => {
-              console.error('[DEBUG] analysis switchTab fail:', err);
-              uni.showToast({ 
-                title: '跳转失败，请重试', 
-                icon: 'none',
-                duration: 2000
-              });
-            }
-          });
-        } else {
-          // 跳转到非 tabBar 页面用 redirectTo
-          uni.redirectTo({
-            url: redirectUrl,
-            success: () => {
-              console.log('[DEBUG] analysis redirectTo success');
-            },
-            fail: (err) => {
-              console.error('[DEBUG] analysis redirectTo fail:', err);
-              uni.showToast({ 
-                title: '跳转失败，请重试', 
-                icon: 'none',
-                duration: 2000
-              });
-            }
-          });
-        }
-      } catch (jumpErr) {
-        console.error('[DEBUG] analysis redirect error:', jumpErr);
-      }
-    }, 100);
+      });
+    }
   } catch (error) {
     console.error('[DEBUG] analysis doFinishAnalysis error:', error);
     uni.showToast({ 
       title: '测试失败，请重试', 
       icon: 'none',
-      duration: 3000 
+      duration: 3000
     });
   }
+};
+
+// 处理匹配的函数
+const processMatch = (friendCuteId, isPrivate, myGender, latestRecord) => {
+  console.log(`[analysis processMatch] 开始, friendCuteId: ${friendCuteId}, isPrivate: ${isPrivate}`);
+  uni.showLoading({ title: '计算匹配度...' });
+
+  const timeoutId = setTimeout(() => {
+    console.log('云函数调用超时');
+    uni.hideLoading();
+    uni.showModal({
+      title: '无法获取好友数据',
+      content: `好友(${friendCuteId})还没有完成人格测试，无法计算匹配度。请让好友先完成测试后再试。`,
+      showCancel: false,
+      confirmText: '我知道了'
+    });
+  }, 8000);
+
+  if (uni.cloud) {
+    uni.cloud.callFunction({
+      name: 'getPersonality',
+      data: { cuteid: friendCuteId },
+      success: (res) => {
+        clearTimeout(timeoutId);
+        console.log(`[analysis processMatch] getPersonality 返回:`, res);
+        if (res.result && res.result.success && res.result.data) {
+          processMatchResult(res.result.data, friendCuteId, isPrivate, myGender, latestRecord);
+        } else {
+          uni.hideLoading();
+          console.log(`[analysis processMatch] ❌ getPersonality 失败:`, res.result);
+          uni.showModal({
+            title: '无法获取好友数据',
+            content: `好友(${friendCuteId})还没有完成人格测试。`,
+            showCancel: false,
+            confirmText: '我知道了'
+          });
+        }
+      },
+      fail: (err) => {
+        clearTimeout(timeoutId);
+        uni.hideLoading();
+        console.log('[analysis processMatch] ❌ 云函数调用失败:', err);
+        uni.showModal({
+          title: '获取好友数据失败',
+          content: '无法获取好友的人格数据，请检查网络后重试。',
+          showCancel: false,
+          confirmText: '我知道了'
+        });
+      }
+    });
+  } else {
+    clearTimeout(timeoutId);
+    uni.hideLoading();
+    uni.showModal({
+      title: '无法获取好友数据',
+      content: '当前环境不支持云函数调用，请配置云开发后重试。',
+      showCancel: false,
+      confirmText: '我知道了'
+    });
+  }
+};
+
+// 处理匹配结果
+const processMatchResult = (friendPersonalityData, friendCuteId, isPrivate, myGender, latestRecord) => {
+  const myCuteId = userStore.userData.cuteId || '';
+  const myPersonality = latestRecord.personality || '';
+
+  const myData = {
+    percentages: latestRecord.percentages || { E: 50, I: 50, S: 50, N: 50, T: 50, F: 50, J: 50, P: 50 },
+    gender: myGender
+  };
+
+  let friendData = null;
+  let friendPersonality = '';
+
+  if (friendPersonalityData && friendPersonalityData.percentages && Object.keys(friendPersonalityData.percentages).length > 0) {
+    friendData = {
+      percentages: friendPersonalityData.percentages,
+      gender: friendPersonalityData.gender || (myGender === 'male' ? 'female' : 'male')
+    };
+    friendPersonality = friendPersonalityData.personality || friendPersonalityData.personalityCode || '';
+  } else {
+    uni.hideLoading();
+    uni.showModal({
+      title: '匹配失败',
+      content: '好友还没有完成人格测试，无法计算匹配度。',
+      showCancel: false,
+      confirmText: '我知道了'
+    });
+    return;
+  }
+
+  const matchResult = scoring.calculateRelationshipMatch(myData, friendData);
+  console.log('匹配结果:', matchResult);
+
+  // 判断是否来自链接流程（好友分享的链接），交换 userA/userB
+  const fromLink = uni.getStorageSync('fromLink');
+  uni.removeStorageSync('fromLink');
+
+  const initiatorCuteId = fromLink ? friendCuteId : myCuteId;
+  const initiatorPersonality = fromLink ? friendPersonality : myPersonality;
+  const initiatorData = fromLink ? friendData.percentages : myData.percentages;
+  const targetCuteId = fromLink ? myCuteId : friendCuteId;
+  const targetPersonality = fromLink ? myPersonality : friendPersonality;
+  const targetData = fromLink ? myData.percentages : friendData.percentages;
+
+  const savedMatchResult = {
+    userA: { cuteId: targetCuteId, personalityCode: targetPersonality, personality: targetPersonality, percentages: targetData },
+    userB: { cuteId: initiatorCuteId, personalityCode: initiatorPersonality, personality: initiatorPersonality, percentages: initiatorData },
+    matchScore: matchResult.matchScore,
+    matchData: matchResult,
+    isPrivate,
+    source: fromLink ? 'link' : 'manual'
+  };
+
+  uni.setStorageSync('matchResult', savedMatchResult);
+
+  // 保存到 matchResultsMap（按好友 cuteId 缓存，后续链接重复进入可直达结果）
+  const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
+  matchResultsMap[friendCuteId] = savedMatchResult;
+  uni.setStorageSync('matchResultsMap', matchResultsMap);
+
+  // 保存到匹配记录列表
+  const matchRecords = uni.getStorageSync('matchRecords') || [];
+  const exists = matchRecords.some(r =>
+    (r.userA?.cuteId === friendCuteId && r.userB?.cuteId === myCuteId) ||
+    (r.userA?.cuteId === myCuteId && r.userB?.cuteId === friendCuteId)
+  );
+  if (!exists) {
+    matchRecords.push({
+      userA: { cuteId: fromLink ? myCuteId : friendCuteId, personalityCode: targetPersonality },
+      userB: { cuteId: fromLink ? friendCuteId : myCuteId, personalityCode: initiatorPersonality },
+      matchData: matchResult,
+      source: fromLink ? 'link' : 'manual',
+      timestamp: Date.now()
+    });
+    uni.setStorageSync('matchRecords', matchRecords);
+  }
+  uni.setStorageSync('matchTarget', '');
+
+  // 同步保存到云端，双方均可查看记录数
+  // 链接流程：发起方是分享链接的人，不是本地调用者
+  uni.cloud.callFunction({
+    name: 'createMatch',
+    data: {
+      myCuteId: fromLink ? friendCuteId : myCuteId,
+      friendCuteId: fromLink ? myCuteId : friendCuteId,
+      matchResult: matchResult,
+      isPrivate: isPrivate,
+      source: fromLink ? 'link' : 'manual',
+      timestamp: Date.now(),
+      initiatorPersonality: initiatorPersonality,
+      targetPersonality: targetPersonality
+    }
+  }).then(res => {
+    console.log('[analysis processMatchResult] 云端保存匹配记录成功:', res);
+  }).catch(err => {
+    console.log('[analysis processMatchResult] 云端保存匹配记录失败:', err);
+  });
+
+  setTimeout(() => {
+    uni.hideLoading();
+    uni.navigateTo({
+      url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(friendCuteId)}`
+    });
+  }, 100);
 };
 
 const finishAnalysis = () => {
@@ -708,7 +812,7 @@ button::after {
   border: none;
 }
 
-.confirm-modal {
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -722,7 +826,7 @@ button::after {
 }
 
 .modal-content {
-  width: 600rpx;
+  width: 560rpx;
   background-color: #ffffff;
   border-radius: 24rpx;
   padding: 48rpx 32rpx;
@@ -731,7 +835,7 @@ button::after {
 }
 
 .modal-container {
-  width: 500rpx;
+  width: 560rpx;
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 40rpx 28rpx;
@@ -750,7 +854,7 @@ button::after {
 }
 
 .modal-title {
-  font-size: 28rpx;
+  font-size: 36rpx;
   font-weight: 700;
   color: #000000;
   text-align: center;

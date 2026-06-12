@@ -5,32 +5,87 @@ cloud.init({
 })
 
 const db = cloud.database()
+const _ = db.command
+
+async function incrementMatchCount(cuteId) {
+  if (!cuteId) return
+  // 查找用户文档
+  const userResult = await db.collection('users').where({ cuteid: cuteId }).get()
+  if (userResult.data && userResult.data.length > 0) {
+    // 已存在文档 → 递增
+    await db.collection('users').doc(userResult.data[0]._id).update({
+      data: { relationship_match_count: _.inc(1) }
+    })
+  } else {
+    // 文档不存在 → 新建（首次被匹配的用户）
+    await db.collection('users').add({
+      data: {
+        cuteid: cuteId,
+        relationship_match_count: 1,
+        created_at: db.serverDate()
+      }
+    })
+  }
+}
 
 exports.main = async (event, context) => {
   const { openid } = cloud.getWXContext()
-  
+
   try {
     console.log(`[createMatch] 开始执行, openid: ${openid}`)
-    
+
     const friendCuteId = event.friendCuteId || event.friendCuteid || event.friendCuteID || '';
+    const myCuteId = event.myCuteId || event.myCuteid || '';
+
+    // 1. 保存匹配记录到 match_records 集合
     const matchRecord = {
-      initiator_openid: openid,
+      initiator_cuteid: myCuteId,
+      initiator_personality: event.initiatorPersonality || '',
       recipient_cuteid: friendCuteId,
-      initiator_personality: event.initiatorPersonality || event.myPersonality || '',
-      recipient_personality: event.recipientPersonality || event.friendPersonality || '',
-      match_score: event.matchScore || 0,
+      recipient_personality: event.targetPersonality || '',
       match_result: event.matchResult || {},
       is_secret: event.isPrivate || false,
+      source: event.source || 'manual',
       timestamp: event.timestamp || Date.now(),
       created_at: db.serverDate()
+    }
+
+    // 补全双方 openid（通过 cuteId 查询，不依赖调用方的 openid）
+    // 链接流程中调用方 openid ≠ 发起方 openid，因此必须用 cuteId 查
+    try {
+      const initiatorResult = await db.collection('users')
+        .where({ cuteid: myCuteId })
+        .get()
+      if (initiatorResult.data && initiatorResult.data.length > 0) {
+        matchRecord.initiator_openid = initiatorResult.data[0].openid || ''
+      }
+    } catch (e) {
+      console.error('[createMatch] 查询发起方openid失败:', e)
+    }
+    try {
+      const recipientResult = await db.collection('users')
+        .where({ cuteid: friendCuteId })
+        .get()
+      if (recipientResult.data && recipientResult.data.length > 0) {
+        matchRecord.recipient_openid = recipientResult.data[0].openid || ''
+      }
+    } catch (e) {
+      console.error('[createMatch] 查询接收方openid失败:', e)
     }
 
     const result = await db.collection('match_records').add({
       data: matchRecord
     })
-    
-    console.log(`[createMatch] 保存成功, _id: ${result._id}`)
-    
+
+    console.log(`[createMatch] 匹配记录保存成功, _id: ${result._id}`)
+
+    // 2. 更新双方的关系测试次数（文档不存在时自动创建）
+    await incrementMatchCount(myCuteId)
+    console.log(`[createMatch] 发起方(${myCuteId}) 次数已+1`)
+
+    await incrementMatchCount(friendCuteId)
+    console.log(`[createMatch] 接收方(${friendCuteId}) 次数已+1`)
+
     return {
       success: true,
       message: '匹配记录创建成功',

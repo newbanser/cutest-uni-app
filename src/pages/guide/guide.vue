@@ -32,11 +32,12 @@
               :key="code"
               class="personality-item"
               :class="{ unlocked: hasRecord(code), locked: !hasRecord(code) }"
-              @tap="goToDetail(code)"
+              @tap="handleTap(code)"
             >
               <view class="avatar-wrapper">
                 <image class="personality-avatar" :src="getPersonalityAvatar(code)" mode="aspectFill"></image>
-                <text v-if="hasRecord(code)" class="personality-badge">{{ getCount(code) }}</text>
+                <text v-if="getDiscoveredCount(code) > 0" class="personality-badge-discovered">{{ getDiscoveredCount(code) }}</text>
+                <text v-if="getCount(code) > 0" class="personality-badge">{{ getCount(code) }}</text>
               </view>
             </view>
           </view>
@@ -55,11 +56,12 @@
               :key="code"
               class="personality-item"
               :class="{ unlocked: hasRecord(code), locked: !hasRecord(code) }"
-              @tap="goToDetail(code)"
+              @tap="handleTap(code)"
             >
               <view class="avatar-wrapper">
                 <image class="personality-avatar" :src="getPersonalityAvatar(code)" mode="aspectFill"></image>
-                <text v-if="hasRecord(code)" class="personality-badge">{{ getCount(code) }}</text>
+                <text v-if="getDiscoveredCount(code) > 0" class="personality-badge-discovered">{{ getDiscoveredCount(code) }}</text>
+                <text v-if="getCount(code) > 0" class="personality-badge">{{ getCount(code) }}</text>
               </view>
             </view>
           </view>
@@ -78,11 +80,12 @@
               :key="code"
               class="personality-item"
               :class="{ unlocked: hasRecord(code), locked: !hasRecord(code) }"
-              @tap="goToDetail(code)"
+              @tap="handleTap(code)"
             >
               <view class="avatar-wrapper">
                 <image class="personality-avatar" :src="getPersonalityAvatar(code)" mode="aspectFill"></image>
-                <text v-if="hasRecord(code)" class="personality-badge">{{ getCount(code) }}</text>
+                <text v-if="getDiscoveredCount(code) > 0" class="personality-badge-discovered">{{ getDiscoveredCount(code) }}</text>
+                <text v-if="getCount(code) > 0" class="personality-badge">{{ getCount(code) }}</text>
               </view>
             </view>
           </view>
@@ -101,11 +104,12 @@
               :key="code"
               class="personality-item"
               :class="{ unlocked: hasRecord(code), locked: !hasRecord(code) }"
-              @tap="goToDetail(code)"
+              @tap="handleTap(code)"
             >
               <view class="avatar-wrapper">
                 <image class="personality-avatar" :src="getPersonalityAvatar(code)" mode="aspectFill"></image>
-                <text v-if="hasRecord(code)" class="personality-badge">{{ getCount(code) }}</text>
+                <text v-if="getDiscoveredCount(code) > 0" class="personality-badge-discovered">{{ getDiscoveredCount(code) }}</text>
+                <text v-if="getCount(code) > 0" class="personality-badge">{{ getCount(code) }}</text>
               </view>
             </view>
           </view>
@@ -124,11 +128,12 @@
               :key="code"
               class="personality-item"
               :class="{ unlocked: hasRecord(code), locked: !hasRecord(code) }"
-              @tap="goToDetail(code)"
+              @tap="handleTap(code)"
             >
               <view class="avatar-wrapper">
                 <image class="personality-avatar" :src="getPersonalityAvatar(code)" mode="aspectFill"></image>
-                <text v-if="hasRecord(code)" class="personality-badge">{{ getCount(code) }}</text>
+                <text v-if="getDiscoveredCount(code) > 0" class="personality-badge-discovered">{{ getDiscoveredCount(code) }}</text>
+                <text v-if="getCount(code) > 0" class="personality-badge">{{ getCount(code) }}</text>
               </view>
             </view>
           </view>
@@ -164,29 +169,41 @@ const activeTab = ref('personality');
 const analysisRecords = ref([]);
 const totalAnalysis = ref(0);
 const recordCounts = ref({});
+const discoveredCounts = ref({});
 
 const loadUserData = () => {
   userStore.loadUserData();
   const records = userStore.userData.analysis_records || [];
   analysisRecords.value = records;
   totalAnalysis.value = records.length;
-  
+
   const counts = {};
   records.forEach(record => {
     const personality = (record.personality || 'unknown').toLowerCase();
     counts[personality] = (counts[personality] || 0) + 1;
   });
   recordCounts.value = counts;
+  // 加载关系测试中发现的人格（与自测分开统计）
+  try {
+    discoveredCounts.value = uni.getStorageSync('discoveredPersonalities') || {};
+  } catch (e) {
+    discoveredCounts.value = {};
+  }
 };
 
 const hasRecord = (code) => {
   const lowerCode = code.toLowerCase();
-  return recordCounts.value[lowerCode] > 0;
+  return recordCounts.value[lowerCode] > 0 || (discoveredCounts.value[lowerCode] || 0) > 0;
 };
 
 const getCount = (code) => {
   const lowerCode = code.toLowerCase();
   return recordCounts.value[lowerCode] || 0;
+};
+
+const getDiscoveredCount = (code) => {
+  const lowerCode = code.toLowerCase();
+  return discoveredCounts.value[lowerCode] || 0;
 };
 
 const basicPersonalities = ['istp', 'isfp', 'estp', 'esfp', 'infj', 'infp', 'enfj', 'enfp', 'istj', 'isfj', 'estj', 'esfj', 'intj', 'intp', 'entj', 'entp'];
@@ -228,6 +245,14 @@ const switchTab = (tab) => {
   activeTab.value = tab;
 };
 
+const handleTap = (code) => {
+  if (hasRecord(code)) {
+    goToDetail(code);
+  } else {
+    uni.showToast({ title: '人格未解锁，暂无法查看详情', icon: 'none', duration: 1500 });
+  }
+};
+
 const goToDetail = (code) => {
   console.log('goToDetail called with code:', code);
   uni.navigateTo({
@@ -263,32 +288,32 @@ page {
 /* Tab切换样式 */
 .tabs-container {
   display: flex;
-  gap: 16rpx;
+  gap: 12rpx;
   margin-bottom: 24rpx;
 }
 
 .tab-item {
   flex: 1;
-  padding: 28rpx;
-  text-align: center;
-  border-radius: 16rpx;
-  background-color: #ffffff;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  padding: 16rpx 20rpx;
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: #000000;
   transition: all 0.3s ease;
+  border: 2px solid #000000;
+  text-align: center;
 }
 
 .tab-item.active {
-  /* 选中状态无背景变化 */
+  background: #000000;
+  color: #ffffff;
 }
 
 .tab-text {
-  font-size: 28rpx;
-  font-weight: 600;
-  color: #606060;
-}
-
-.tab-item.active .tab-text {
-  color: #000000;
+  font-size: 24rpx;
+  font-weight: 700;
+  color: inherit;
 }
 
 .card {
@@ -376,6 +401,23 @@ page {
   align-items: center;
   justify-content: center;
   padding: 0 6rpx;
+}
+
+.personality-badge-discovered {
+  position: absolute;
+  top: -4rpx;
+  left: -4rpx;
+  background-color: #000000;
+  color: #ffffff;
+  font-size: 18rpx;
+  font-weight: 700;
+  min-width: 32rpx;
+  height: 32rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6rpx;
   z-index: 10;
   border: 1px solid #e0e0e0;
 }
@@ -387,11 +429,13 @@ page {
 }
 
 .tip-text {
-  font-size: 26rpx;
-  color: #999999;
+  font-size: 24rpx;
+  color: #646464;
+  line-height: 1.6;
   text-align: center;
-  padding: 30rpx 0;
+  padding: 20rpx 0;
   margin-top: 20rpx;
+  margin-bottom: 24rpx;
   display: block;
 }
 

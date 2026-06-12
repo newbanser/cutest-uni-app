@@ -61,15 +61,16 @@
       <text class="suggestion-text">{{ changeSuggestion }}</text>
     </view>
 
+
     <view class="view-trend-section">
       <view class="delete-btn" @tap="confirmDelete">
         <image class="delete-icon" src="/static/images/delete.png" mode="aspectFit"></image>
       </view>
-      <view class="view-trend-btn share-btn" @tap="handleRelationTest">
-        关系测试
+      <view class="home-btn" @tap="goToHome">
+        返回首页
       </view>
-      <view class="save-image-btn" @tap="saveReport">
-        保存图片
+      <view class="relation-test-btn" @tap="handleRelationTest">
+        关系测试
       </view>
     </view>
 
@@ -110,48 +111,48 @@
       </view>
     </view>
     
-    <!-- 测试模式选择弹窗 -->
+    <!-- 测试模式选择弹窗（含输入密语内嵌切换） -->
     <view class="modal-overlay" v-if="showTestModeModal" @tap="closeTestModeModal">
       <view class="modal-content" @tap.stop>
         <view class="modal-close" @tap="closeTestModeModal">×</view>
-        <text class="modal-title">选择测试模式</text>
-        <view class="share-options">
-          <view class="share-card" @tap="goDirectTest">
-            <text class="share-name">直接测试</text>
-            <text class="share-desc">分享你的人格密语</text>
+
+        <!-- 主界面：选择模式 -->
+        <template v-if="!showCuteidInput">
+          <text class="modal-title">选择测试模式</text>
+          <view class="share-options">
+            <button class="share-card" @tap="goDirectTest">
+              <text class="share-name">直接测试</text>
+              <text class="share-desc">分享你的人格密语</text>
+            </button>
+            <button class="share-card" @tap="openCuteidInput">
+              <text class="share-name">输入密语</text>
+              <text class="share-desc">输入对方的人格密语</text>
+            </button>
           </view>
-          <view class="share-card" @tap="goInputCuteId">
-            <text class="share-name">输入密语</text>
-            <text class="share-desc">输入对方的人格密语</text>
+        </template>
+
+        <!-- 内嵌界面：输入密语 -->
+        <template v-else>
+          <text class="modal-title">请输入对方的密语</text>
+          <input
+            class="cuteid-input"
+            v-model="inputCuteId"
+            placeholder="人格密语是一串7位的字母数字组合"
+            maxlength="7"
+          />
+          <view class="input-cuteid-buttons">
+            <button class="input-cuteid-btn input-cuteid-btn-cancel" @tap="closeCuteidInput">返回</button>
+            <button class="input-cuteid-btn input-cuteid-btn-direct" @tap="doMatch">开始匹配</button>
           </view>
-        </view>
-      </view>
-    </view>
-    
-    <!-- 输入密语弹窗 -->
-    <view class="modal-overlay" v-if="showInputCuteidModal" @tap="closeInputCuteidModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-close" @tap="closeInputCuteidModal">×</view>
-        <text class="modal-title">请输入对方的密语</text>
-        <input 
-          class="cuteid-input" 
-          v-model="inputCuteId" 
-          placeholder="人格密语是一串7位的字母数字组合" 
-          maxlength="7"
-        />
-        <view class="input-cuteid-buttons">
-          <button class="input-cuteid-btn input-cuteid-btn-cancel" @tap="closeInputCuteidModal">取消</button>
-          <button class="input-cuteid-btn input-cuteid-btn-direct" @tap="doDirectMatch">直接测试</button>
-          <button class="input-cuteid-btn input-cuteid-btn-private" @tap="doPrivateMatch">偷偷测试</button>
-        </view>
+        </template>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { ref, onMounted, getCurrentInstance } from 'vue';
-import { onShareAppMessage, onShareTimeline } from '@dcloudio/uni-app';
+import { ref, computed, onMounted } from 'vue';
+import { onShareAppMessage, onShareTimeline, onShow } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
 import personalitiesData from '@/data/personalities';
 import { getPersonalityAvatar, getCampIconUrl } from '@/utils/imageHelper';
@@ -168,7 +169,9 @@ const suggestionStyle = ref('');
 const showDeleteModal = ref(false);
 const showShareModalFlag = ref(false);
 const showTestModeModal = ref(false);
-const showInputCuteidModal = ref(false);
+const showCuteidInput = ref(false); // 测试模式弹窗内切换到输入密语界面
+const openCuteidInput = () => { showCuteidInput.value = true; };
+const closeCuteidInput = () => { showCuteidInput.value = false; };
 const isMatchShare = ref(false); // 标记是否来自"关系测试"流程
 const currentViewId = ref(null);
 const isCurrentLatestRecord = ref(false);
@@ -283,8 +286,10 @@ const loadView = () => {
     userStore.loadUserData();
     const userData = userStore.userData;
     const storedViewId = uni.getStorageSync('currentViewId');
+    console.log('[xbti-result loadView] analysis_records 长度:', userData?.analysis_records?.length, 'storedViewId:', storedViewId);
 
     if (!userData || !userData.analysis_records) {
+      console.log('[xbti-result loadView] 数据加载失败：无 analysis_records');
       uni.showToast({ title: '数据加载失败', icon: 'none' });
       return;
     }
@@ -598,7 +603,7 @@ const closeDeleteModal = () => {
   showDeleteModal.value = false;
 };
 
-const deleteRecord = () => {
+const deleteRecord = async () => {
   try {
     if (remainingDeletes.value <= 0) {
       uni.showToast({ title: '今天的删除机会已用完', icon: 'none' });
@@ -616,6 +621,16 @@ const deleteRecord = () => {
     if (!currentViewId.value) {
       uni.showToast({ title: '记录ID不存在', icon: 'none' });
       return;
+    }
+
+    // 调用云函数软删除
+    try {
+      await uni.cloud.callFunction({
+        name: 'deletePersonalityRecord',
+        data: { recordId: currentViewId.value }
+      });
+    } catch (e) {
+      console.error('[xbti-result] 云端删除失败:', e);
     }
 
     const originalCount = userData.analysis_records.length;
@@ -686,8 +701,21 @@ const handleRelationTest = () => {
     });
     return;
   }
-  // 显示测试模式选择弹窗
-  showTestModeModal.value = true;
+  uni.showToast({ title: 'handleRelationTest 被调用', icon: 'none', duration: 2000 });
+  // 用微信原生弹窗，绕过模板渲染问题
+  uni.showActionSheet({
+    itemList: ['输入密语匹配', '分享我的密语'],
+    success: (res) => {
+      if (res.tapIndex === 0) {
+        // 输入密语 → 原生输入框
+        showTestModeModal.value = true;
+        openCuteidInput();
+      } else if (res.tapIndex === 1) {
+        // 分享密语
+        goDirectTest();
+      }
+    }
+  });
 };
 
 const closeTestModeModal = () => {
@@ -700,21 +728,7 @@ const goDirectTest = () => {
   openShareModal();
 };
 
-const goInputCuteId = () => {
-  closeTestModeModal();
-  openInputCuteIdModal();
-};
-
-const openInputCuteIdModal = () => {
-  inputCuteId.value = '';
-  showInputCuteidModal.value = true;
-};
-
-const closeInputCuteidModal = () => {
-  showInputCuteidModal.value = false;
-};
-
-const doDirectMatch = () => {
+const doMatch = () => {
   if (!inputCuteId.value || inputCuteId.value.length !== 7) {
     uni.showToast({
       title: '请输入完整的7位密语',
@@ -722,20 +736,9 @@ const doDirectMatch = () => {
     });
     return;
   }
-  closeInputCuteidModal();
+  showTestModeModal.value = false;
+  closeCuteidInput();
   performMatch(inputCuteId.value.toUpperCase(), false);
-};
-
-const doPrivateMatch = () => {
-  if (!inputCuteId.value || inputCuteId.value.length !== 7) {
-    uni.showToast({
-      title: '请输入完整的7位密语',
-      icon: 'none'
-    });
-    return;
-  }
-  closeInputCuteidModal();
-  performMatch(inputCuteId.value.toUpperCase(), true);
 };
 
 const openShareModal = () => {
@@ -864,7 +867,7 @@ const performMatch = async (matchTarget, isPrivate) => {
   
   try {
     const latestRecord = userStore.userData.analysis_records[userStore.userData.analysis_records.length - 1];
-    const myGender = latestRecord.gender || userStore.userData.gender || 'male';
+    const myGender = latestRecord.gender || userStore.userData.gender || '';
     const myPersonality = latestRecord.personality || '';
     
     console.log(`[xbti performMatch] 开始, matchTarget: ${matchTarget}, myGender: ${myGender}`);
@@ -883,7 +886,7 @@ const performMatch = async (matchTarget, isPrivate) => {
       try {
         const res = await uni.cloud.callFunction({
           name: 'getPersonality',
-          data: { cuteId: matchTarget }
+          data: { cuteid: matchTarget }
         });
         
         console.log(`[xbti performMatch] getPersonality 返回:`, res);
@@ -894,7 +897,7 @@ const performMatch = async (matchTarget, isPrivate) => {
           if (friendPersonalityData.percentages && Object.keys(friendPersonalityData.percentages).length > 0) {
             friendData = {
               percentages: friendPersonalityData.percentages,
-              gender: friendPersonalityData.gender || 'male'
+              gender: friendPersonalityData.gender || ''
             };
             friendPersonality = friendPersonalityData.personality || friendPersonalityData.personalityCode || '';
             console.log('✅ 获取到好友真实数据:', friendData, '人格类型:', friendPersonality);
@@ -945,11 +948,44 @@ const performMatch = async (matchTarget, isPrivate) => {
     };
     
     uni.setStorageSync('matchResult', savedMatchResult);
+    // 保存到匹配记录列表（每次匹配都记录，用于计数）
+    const matchRecords = uni.getStorageSync('matchRecords') || [];
+    const exists = matchRecords.some(r =>
+      (r.userA?.cuteId === matchTarget && r.userB?.cuteId === myCuteId) ||
+      (r.userA?.cuteId === myCuteId && r.userB?.cuteId === matchTarget)
+    );
+    if (!exists) {
+      matchRecords.push({
+        userA: { cuteId: matchTarget, personalityCode: friendPersonality },
+        userB: { cuteId: myCuteId, personalityCode: myPersonality },
+        matchData: matchResult,
+        timestamp: Date.now()
+      });
+      uni.setStorageSync('matchRecords', matchRecords);
+    }
     uni.setStorageSync('matchTarget', '');
+    
+    // 保存到云端 match_records 集合
+    try {
+      uni.cloud.callFunction({
+        name: 'createMatch',
+        data: {
+          friendCuteId: matchTarget,
+          myCuteId: myCuteId,
+          matchResult: savedMatchResult.matchData,
+          isPrivate,
+          timestamp: Date.now(),
+          initiatorPersonality: myPersonality,
+          targetPersonality: friendPersonality
+        }
+      });
+    } catch (e) {
+      console.error('[xbti-result] 云端保存匹配记录失败:', e);
+    }
     
     uni.hideLoading();
     uni.navigateTo({ 
-      url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(matchTarget)}&matchResult=${encodeURIComponent(JSON.stringify(matchResult))}` 
+      url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(myCuteId)}&friendID=${encodeURIComponent(matchTarget)}` 
     });
   } catch (error) {
     uni.hideLoading();
@@ -961,34 +997,30 @@ const performMatch = async (matchTarget, isPrivate) => {
   }
 };
 
+// 从关系测试流程过来（A 无记录 → 做题 → 回到此结果页），自动弹出分享弹窗
+// 放在 onShow 而非 onMounted 中，确保页面完全就绪
+onShow(() => {
+  const fromRelationTest = uni.getStorageSync('fromRelationTest');
+  console.log('[xbti-result onShow] fromRelationTest:', fromRelationTest, 'truthy:', !!fromRelationTest);
+  if (fromRelationTest) {
+    uni.removeStorageSync('fromRelationTest');
+    console.log('[xbti-result onShow] 准备弹出分享弹窗');
+    isMatchShare.value = true;
+    showShareModalFlag.value = true;
+  } else {
+    console.log('[xbti-result onShow] fromRelationTest 为空，不弹分享');
+    // 分享完成后返回，关闭弹窗
+    showShareModalFlag.value = false;
+  }
+});
+
 onMounted(() => {
   loadCuteId();
   loadView();
-  
+
   const matchTarget = uni.getStorageSync('matchTarget');
   if (matchTarget) {
-    let currentView = uni.getStorageSync('currentView');
-    if (!currentView || !currentView.personality) {
-      if (userStore.userData.analysis_records && userStore.userData.analysis_records.length > 0) {
-        currentView = userStore.userData.analysis_records[userStore.userData.analysis_records.length - 1];
-        uni.setStorageSync('currentView', currentView);
-        uni.setStorageSync('currentViewId', currentView.id);
-      }
-    }
-    
-    uni.showModal({
-      title: '匹配邀请',
-      content: '收到好友的人格密语邀请！是否查看你们的匹配度？',
-      confirmText: '立即查看',
-      cancelText: '偷偷测试',
-      success: (res) => {
-        if (res.confirm) {
-          performMatch(matchTarget, false);
-        } else {
-          performMatch(matchTarget, true);
-        }
-      }
-    });
+    console.log('[xbti-result] 检测到 matchTarget，跳过匹配弹窗（由首页处理）');
   }
 });
 
@@ -999,6 +1031,7 @@ onShareAppMessage(() => {
   const cuteId = userStore.userData.cuteId || '';
   if (isMatchShare.value) {
     isMatchShare.value = false;
+    showShareModalFlag.value = false;
     return {
       title: `我的人格密语是 ${cuteId}，快来测测我们的匹配度！`,
       path: `/pages/index/index?from=${cuteId}`,
@@ -1156,8 +1189,10 @@ page {
   position: absolute;
   top: 14rpx;
   right: 14rpx;
-  width: 100px;
-  height: 90px;
+  width: 180rpx;
+  height: 180rpx;
+  width: 180rpx;
+  height: 180rpx;
   opacity: 0.1;
   z-index: 1;
 }
@@ -1357,11 +1392,11 @@ page {
   height: 52rpx;
 }
 
-.view-trend-btn {
+.home-btn {
   flex: 1;
   height: 88rpx;
   line-height: 88rpx;
-  background: #fff;
+  background: #ffffff;
   color: #000000;
   border-radius: 44rpx;
   font-size: 32rpx;
@@ -1372,7 +1407,7 @@ page {
   margin: 0 12rpx;
 }
 
-.save-image-btn {
+.relation-test-btn {
   flex: 1;
   height: 88rpx;
   line-height: 88rpx;
@@ -1384,7 +1419,9 @@ page {
   padding: 0;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
   text-align: center;
+  margin-left: 12rpx;
 }
+
 
 .modal-overlay {
   position: fixed;
@@ -1400,7 +1437,9 @@ page {
 }
 
 .modal-content {
-  width: 600rpx;
+  width: 560rpx;
+  max-height: 80vh;
+  overflow-y: auto;
   background: #fff;
   border-radius: 16rpx;
   padding: 48rpx;
@@ -1490,7 +1529,7 @@ button::after {
 }
 
 .share-modal-content {
-  width: 600rpx;
+  width: 560rpx;
   background-color: #ffffff;
   border-radius: 16rpx;
   padding: 48rpx 32rpx;
@@ -1524,13 +1563,13 @@ button::after {
 .share-options {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 16rpx;
 }
 
 .share-card {
   background-color: #f5f5f5;
   border-radius: 24rpx;
-  padding: 32rpx;
+  padding: 24rpx;
   text-align: center;
   border: 2px solid #e0e0e0;
 }
@@ -1620,5 +1659,6 @@ button.share-card:active .share-desc {
   background-color: #FA325A;
   color: #ffffff;
 }
+
 </style>
 
