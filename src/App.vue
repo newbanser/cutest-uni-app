@@ -1,6 +1,7 @@
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app';
 import { useUserStore } from '@/stores/user';
+import { preloadCrushImages } from '@/utils/cloudImages';
 
 const userStore = useUserStore();
 
@@ -11,6 +12,8 @@ onLaunch(() => {
       traceUser: true
     });
     console.log('云开发初始化完成，环境ID: cloud1-d2gz1iuxn08055996');
+    // 预加载 37 张 crush 关系图 + 81 型人格头像云存储临时链接
+    preloadCrushImages();
   } else {
     console.warn('wx.cloud 不存在，请确保已开通云开发');
   }

@@ -79,11 +79,6 @@
         <text class="menu-label">关系测试记录</text>
         <text class="menu-arrow">›</text>
       </view>
-      <view class="menu-item" @tap="goToCollection">
-        <image src="/static/images/album.png" class="menu-icon-img"></image>
-        <text class="menu-label">可爱图鉴库</text>
-        <text class="menu-arrow">›</text>
-      </view>
       <view class="menu-item" @tap="goToChangelog">
         <image src="/static/images/faq.png" class="menu-icon-img"></image>
         <text class="menu-label">常见问题</text>
@@ -93,7 +88,7 @@
 
 
     <!-- 昵称编辑弹窗 -->
-    <view v-if="showNicknameModal" class="modal-overlay" @tap="closeNicknameModal">
+    <view v-if="showNicknameModal" class="modal-overlay">
       <view class="modal-content" @tap.stop>
         <text class="modal-title">修改昵称</text>
         <input 
@@ -111,38 +106,21 @@
     </view>
     
     <!-- 性别选择弹窗 -->
-    <view class="modal-overlay" v-if="showGenderModal" @tap="closeGenderModal">
+    <view class="modal-overlay" v-if="showGenderModal">
       <view class="modal-container" @tap.stop>
-        <view class="modal-close" @tap="closeGenderModal">×</view>
+        <view class="modal-close">×</view>
         <text class="modal-title">你的性别是？</text>
         <view class="gender-options">
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'male' ? 'selected' : '']"
             @tap="selectGender('male')">
             <text class="gender-text">男的</text>
           </view>
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'female' ? 'selected' : '']"
             @tap="selectGender('female')">
             <text class="gender-text">女的</text>
           </view>
-          <view 
-            :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
-            @tap="selectGender('x')">
-            <text class="gender-text">不告诉你</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 性别保密确认弹窗 -->
-    <view v-if="showPrivacyConfirmModal" class="modal-overlay" @tap="closePrivacyConfirmModal">
-      <view class="modal-content" @tap.stop>
-        <text class="modal-title">确定保密？</text>
-        <text class="modal-desc">选择保密后，仍可在"我的"中随时修改</text>
-        <view class="modal-actions">
-          <view class="modal-btn cancel-btn" @tap="closePrivacyConfirmModal">重新选择</view>
-          <view class="modal-btn confirm-btn" @tap="confirmPrivacy">确定保密</view>
         </view>
       </view>
     </view>
@@ -157,7 +135,18 @@ import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
 const { loading: storeLoading } = userStore;
 const matchCount = computed(() => {
-  return userStore.userData.relationship_match_count || 0;
+  // 统计和多少个不同 cuteId 做过关系测试
+  const records = uni.getStorageSync('matchRecords') || [];
+  const seen = new Set();
+  const userCuteId = userStore.userData.cuteId || '';
+  records.forEach(r => {
+    const a = r.userA?.cuteId || '';
+    const b = r.userB?.cuteId || '';
+    // 只统计对方的 cuteId
+    if (a === userCuteId && b) seen.add(b);
+    else if (b === userCuteId && a) seen.add(a);
+  });
+  return seen.size > 0 ? seen.size : (userStore.userData.relationship_match_count || 0);
 });
 const showNicknameModal = ref(false);
 const newNickname = ref('');
@@ -239,7 +228,6 @@ const genderIcon = computed(() => {
   const gender = userStore.userData.gender;
   if (gender === 'male') return '/static/images/gender_m.png';
   if (gender === 'female') return '/static/images/gender_f.png';
-  if (gender === 'x') return '/static/images/gender_x.png';
   return '/static/images/gender_u.png';
 });
 
@@ -288,12 +276,6 @@ const goToMatchHistory = () => {
 };
 
 // 跳转到图鉴库
-const goToCollection = () => {
-  uni.navigateTo({
-    url: '/pages/guide/guide'
-  });
-};
-
 // 跳转到常见问题
 const goToChangelog = () => {
   uni.navigateTo({
@@ -330,12 +312,10 @@ const copyCuteId = () => {
 
 // 性别相关状态
 const showGenderModal = ref(false);
-const showPrivacyConfirmModal = ref(false);
 const selectedGender = ref('');
 
 // 打开性别选择弹窗
 const openGenderModal = () => {
-  // 如果用户已经有性别设置，显示当前选择；否则为空
   selectedGender.value = userStore.userData.gender || '';
   showGenderModal.value = true;
 };
@@ -345,16 +325,9 @@ const closeGenderModal = () => {
   showGenderModal.value = false;
 };
 
-// 选择性别（点选直接保存，无需确定按钮）
+// 选择性别（点选直接保存）
 const selectGender = (gender) => {
   selectedGender.value = gender;
-
-  // 选择"保密"需要二次确认
-  if (gender === 'x') {
-    showGenderModal.value = false;
-    showPrivacyConfirmModal.value = true;
-    return;
-  }
 
   userStore.updateProfile({
     gender: gender
@@ -364,27 +337,6 @@ const selectGender = (gender) => {
     icon: 'success'
   });
   closeGenderModal();
-};
-
-// 确认保密性别
-const confirmPrivacy = () => {
-  userStore.updateProfile({
-    gender: 'x'
-  });
-  uni.showToast({
-    title: '性别已保密',
-    icon: 'success'
-  });
-  showPrivacyConfirmModal.value = false;
-};
-
-// 关闭性别保密确认弹窗
-const closePrivacyConfirmModal = () => {
-  showPrivacyConfirmModal.value = false;
-  // 重新打开性别选择弹窗
-  setTimeout(() => {
-    showGenderModal.value = true;
-  }, 100);
 };
 
 onMounted(() => {

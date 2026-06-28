@@ -26,25 +26,18 @@
         </view>
       </view>
 
-    <view class="qrcode-section">
-      <text class="qrcode-text">请依靠本能做出选择</text>
-      <text class="qrcode-text">胡乱作答会影响趋势</text>
-      <text class="qrcode-text">如果对上文内容有疑义</text>
-      <text class="qrcode-text">微信联系 HGH_SHE</text>
-    </view>
-
     <view class="button-section">
       <view class="prev-btn" v-if="currentIndex > 0" @tap="prevQuestion" @click="prevQuestion">
         返回上题
       </view>
     </view>
 
-    <view class="modal-overlay" v-if="showConfirmModal" @tap="closeConfirmModal">
+    <view class="modal-overlay" v-if="showConfirmModal">
       <view class="modal-content" @tap.stop>
         <text class="modal-title">确认交卷</text>
         <text class="modal-desc">你已完成所有题目，确定要提交答案吗？</text>
         <view class="modal-buttons">
-          <view class="modal-btn cancel-btn" @tap="closeConfirmModal">我再想想</view>
+          <view class="modal-btn cancel-btn">我再想想</view>
           <view class="modal-btn submit-btn" @tap="openGenderModal">现在交卷</view>
         </view>
       </view>
@@ -65,41 +58,23 @@
       </view>
     </view>
 
-    <view class="modal-overlay" v-if="showGenderModal" @tap="closeGenderModal">
+    <view class="modal-overlay" v-if="showGenderModal">
       <view class="modal-container" @tap.stop>
-        <view class="modal-close" @tap="closeGenderModal">×</view>
+        <view class="modal-close">×</view>
         <text class="modal-title">你的性别是？</text>
         <view class="gender-options">
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'male' ? 'selected' : '']"
             @tap.stop="selectGender('male')">
             <text class="gender-text">男的</text>
           </view>
-          <view 
+          <view
             :class="['gender-option', selectedGender === 'female' ? 'selected' : '']"
             @tap.stop="selectGender('female')">
             <text class="gender-text">女的</text>
           </view>
-          <view 
-            :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
-            @tap.stop="selectGender('x')">
-            <text class="gender-text">不告诉你</text>
-          </view>
         </view>
         <button class="save-gender-btn" @tap.stop="handleGenderSubmit">确定</button>
-      </view>
-    </view>
-
-    <!-- 性别保密确认弹窗 -->
-    <view class="modal-overlay" v-if="showPrivacyConfirmModal" @tap="closePrivacyConfirmModal">
-      <view class="modal-content" @tap.stop>
-        <view class="modal-close" @tap="closePrivacyConfirmModal">×</view>
-        <text class="modal-title">确定保密？</text>
-        <text class="modal-desc">选择保密后，仍可在"我的"中随时修改</text>
-        <view class="privacy-buttons">
-          <view class="privacy-btn privacy-btn-cancel" @tap="closePrivacyConfirmModal">重新选择</view>
-          <view class="privacy-btn privacy-btn-confirm" @tap="confirmPrivacy">确定保密</view>
-        </view>
       </view>
     </view>
 
@@ -144,7 +119,6 @@ const formatOptions = (scenarioOptions) => {
 
 const showConfirmModal = ref(false);
 const showGenderModal = ref(false);
-const showPrivacyConfirmModal = ref(false);
 const selectedGender = ref('');
 const inviterCuteid = ref('');
 const showPrivacyModal = ref(false);
@@ -218,13 +192,7 @@ const handleGenderSubmit = () => {
     uni.showToast({ title: '请先选择性别', icon: 'none' });
     return;
   }
-  
-  if (selectedGender.value === 'x') {
-    showGenderModal.value = false;
-    showPrivacyConfirmModal.value = true;
-    return;
-  }
-  
+
   showGenderModal.value = false;
   userStore.updateProfile({
     gender: selectedGender.value
@@ -240,31 +208,6 @@ const handleGenderSubmit = () => {
       doFinishAnalysis(false);
     }
   }, 150);
-};
-
-const confirmPrivacy = () => {
-  userStore.updateProfile({
-    gender: 'x'
-  });
-  showPrivacyConfirmModal.value = false;
-  // 延迟执行，确保弹窗完全关闭
-  setTimeout(() => {
-    const inviter = uni.getStorageSync('inviterCuteid');
-    const matchTarget = uni.getStorageSync('matchTarget');
-    if (inviter && !matchTarget) {
-      inviterCuteid.value = inviter;
-      showPrivacyModal.value = true;
-    } else {
-      doFinishAnalysis(false);
-    }
-  }, 150);
-};
-
-const closePrivacyConfirmModal = () => {
-  showPrivacyConfirmModal.value = false;
-  setTimeout(() => {
-    showGenderModal.value = true;
-  }, 100);
 };
 
 const closePrivacyModal = () => {
@@ -422,8 +365,8 @@ const processMatchResult = (friendPersonalityData, friendCuteId, isPrivate, myGe
   const myCuteId = userStore.userData.cuteId || '';
   const myPersonality = latestRecord.personality || '';
 
-  const myData = {
-    percentages: latestRecord.percentages || { E: 50, I: 50, S: 50, N: 50, T: 50, F: 50, J: 50, P: 50 },
+  const myPersonality2 = latestRecord.personality || '';
+  const myData = { personality: myPersonality2 || latestRecord.personality || '', percentages: latestRecord.percentages || { E: 50, I: 50, S: 50, N: 50, T: 50, F: 50, J: 50, P: 50 },
     gender: myGender
   };
 
@@ -431,9 +374,7 @@ const processMatchResult = (friendPersonalityData, friendCuteId, isPrivate, myGe
   let friendPersonality = '';
 
   if (friendPersonalityData && friendPersonalityData.percentages && Object.keys(friendPersonalityData.percentages).length > 0) {
-    friendData = {
-      percentages: friendPersonalityData.percentages,
-      gender: friendPersonalityData.gender || (myGender === 'male' ? 'female' : 'male')
+    friendData = { percentages: friendPersonalityData.percentages, gender: friendPersonalityData.gender || (myGender === 'male' ? 'female' : 'male'), personality: friendPersonalityData.personality || friendPersonalityData.personalityCode || ''
     };
     friendPersonality = friendPersonalityData.personality || friendPersonalityData.personalityCode || '';
   } else {
@@ -470,12 +411,15 @@ const processMatchResult = (friendPersonalityData, friendCuteId, isPrivate, myGe
     source: fromLink ? 'link' : 'manual'
   };
 
-  uni.setStorageSync('matchResult', savedMatchResult);
-
+  // matchResult 全局单键已废弃（不再写 uni.setStorageSync('matchResult', ...)），避免跨好友串数据
   // 保存到 matchResultsMap（按好友 cuteId 缓存，后续链接重复进入可直达结果）
   const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
   matchResultsMap[friendCuteId] = savedMatchResult;
   uni.setStorageSync('matchResultsMap', matchResultsMap);
+  // 同时写 matchResultByFriend（crush-result 步骤3首选读取路径）
+  const matchResultByFriend = uni.getStorageSync('matchResultByFriend') || {};
+  matchResultByFriend[friendCuteId] = savedMatchResult;
+  uni.setStorageSync('matchResultByFriend', matchResultByFriend);
 
   // 保存到匹配记录列表
   const matchRecords = uni.getStorageSync('matchRecords') || [];
@@ -723,9 +667,8 @@ page {
   color: #646464;
   line-height: 1.6;
   text-align: center;
-  padding: 20rpx 0;
-  margin-top: 20rpx;
-  margin-bottom: 24rpx;
+  padding: 10rpx 0;
+  margin: 10rpx 0;
   display: block;
 }
 
@@ -738,17 +681,17 @@ page {
 }
 
 .prev-btn {
-  width: 160rpx;
-  height: 72rpx;
-  line-height: 72rpx;
-  background: rgba(0, 0, 0, 0.05);
-  color: #666666;
-  border-radius: 36rpx;
-  font-size: 28rpx;
-  font-weight: 500;
+  width: 400rpx;
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #fff;
+  color: #000000;
+  border-radius: 44rpx;
+  font-size: 32rpx;
+  font-weight: 700;
   padding: 0;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
   text-align: center;
-  margin-right: 24rpx;
 }
 
 .submit-btn {
@@ -784,28 +727,6 @@ page {
   color: #999999 !important;
   border-color: #999999 !important;
   box-shadow: none;
-}
-
-.qrcode-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32rpx;
-  background: #fff;
-  border-radius: 32rpx;
-  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
-  margin-bottom: 32rpx;
-}
-
-.qrcode-text {
-  font-size: 28rpx;
-  color: #000000;
-  text-align: center;
-  margin-bottom: 8rpx;
-}
-
-.qrcode-text:last-child {
-  margin-bottom: 0;
 }
 
 button::after {

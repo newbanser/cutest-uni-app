@@ -24,8 +24,6 @@
     </view>
 
     <view class="card evaluation-card" v-if="displayView">
-      <view class="evaluation-title">人格维度</view>
-      <view class="evaluation-intro">本次测试的维度倾向与分值</view>
       <view class="dimension-list">
         <view class="dimension-item" v-for="dim in trendDimensionData" :key="dim.key">
           <view class="dimension-top">
@@ -78,7 +76,7 @@
 
     <canvas canvas-id="shareCanvas" id="shareCanvas" class="hidden-canvas" style="width: 750px; height: 1200px; visibility: hidden; position: fixed; left: -9999px; top: -9999px;"></canvas>
 
-    <view v-if="showDeleteModal" class="modal-overlay" @tap="closeDeleteModal">
+    <view v-if="showDeleteModal" class="modal-overlay">
       <view class="modal-content" @tap.stop>
         <text class="modal-title">确认删除</text>
         <text class="modal-text">你今天还有{{ remainingDeletes }}次删除机会，确认要删除么？</text>
@@ -112,9 +110,9 @@
     </view>
     
     <!-- 测试模式选择弹窗（含输入密语内嵌切换） -->
-    <view class="modal-overlay" v-if="showTestModeModal" @tap="closeTestModeModal">
+    <view class="modal-overlay" v-if="showTestModeModal">
       <view class="modal-content" @tap.stop>
-        <view class="modal-close" @tap="closeTestModeModal">×</view>
+        <view class="modal-close">×</view>
 
         <!-- 主界面：选择模式 -->
         <template v-if="!showCuteidInput">
@@ -250,6 +248,7 @@ const calculateDimensionDataForRecord = (record) => {
   if (!record) return [];
 
   const percentages = record.percentages || {};
+  const isSimpleV2 = record.test_mode === 'simple_v2';
 
   const dimensions = [
     { key: 'EI', name: '能量来源', left: 'E', right: 'I', leftName: '外倾', rightName: '内倾' },
@@ -265,7 +264,8 @@ const calculateDimensionDataForRecord = (record) => {
     let label = '';
     let score = leftPercent;
 
-    if (mainPercent >= SIMPLE_MODE_THRESHOLD_LOW && mainPercent <= SIMPLE_MODE_THRESHOLD_HIGH) {
+    // simple_v2 是纯二分判型，不判 X
+    if (!isSimpleV2 && mainPercent >= SIMPLE_MODE_THRESHOLD_LOW && mainPercent <= SIMPLE_MODE_THRESHOLD_HIGH) {
       label = '融合-X';
     } else {
       if (leftPercent >= rightPercent) {
@@ -298,7 +298,9 @@ const loadView = () => {
     if (!targetViewId) {
       const records = userData.analysis_records;
       if (records && records.length > 0) {
-        targetViewId = records[records.length - 1].id;
+        // 按 timestamp 取最新记录
+        const latest = records.reduce((a, b) => (a.timestamp > b.timestamp ? a : b));
+        targetViewId = latest.id;
       } else {
         uni.showToast({ title: '暂无解析记录', icon: 'none' });
         return;
@@ -309,7 +311,8 @@ const loadView = () => {
 
     const records = userData.analysis_records;
     if (records && records.length > 0) {
-      const latestRecordId = records[records.length - 1].id;
+      const latest = records.reduce((a, b) => (a.timestamp > b.timestamp ? a : b));
+      const latestRecordId = latest.id;
       isCurrentLatestRecord.value = (targetViewId === latestRecordId);
     } else {
       isCurrentLatestRecord.value = false;
@@ -694,7 +697,7 @@ const handleRelationTest = () => {
       success: (res) => {
         if (res.confirm) {
           uni.navigateTo({
-            url: '/pages/analysis-simple/analysis-simple'
+            url: '/pages/analysis-jung/analysis-jung'
           });
         }
       }
@@ -947,7 +950,14 @@ const performMatch = async (matchTarget, isPrivate) => {
       isPrivate
     };
     
-    uni.setStorageSync('matchResult', savedMatchResult);
+    // matchResult 全局单键已废弃（不再写 uni.setStorageSync('matchResult', ...)），避免跨好友串数据
+    // 按好友 cuteId 键值存储，crush-result 可精确读取
+    const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
+    matchResultsMap[matchTarget] = savedMatchResult;
+    uni.setStorageSync('matchResultsMap', matchResultsMap);
+    const matchResultByFriend = uni.getStorageSync('matchResultByFriend') || {};
+    matchResultByFriend[matchTarget] = savedMatchResult;
+    uni.setStorageSync('matchResultByFriend', matchResultByFriend);
     // 保存到匹配记录列表（每次匹配都记录，用于计数）
     const matchRecords = uni.getStorageSync('matchRecords') || [];
     const exists = matchRecords.some(r =>
@@ -1238,13 +1248,13 @@ page {
 }
 
 .dimension-name {
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
   color: #333333;
 }
 
 .dimension-label {
-  font-size: 26rpx;
+  font-size: 24rpx;
   font-weight: 600;
   color: #333333;
 }
@@ -1269,7 +1279,7 @@ page {
 }
 
 .mini-text {
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 700;
   color: #ffffff;
 }
@@ -1360,9 +1370,8 @@ page {
   color: #646464;
   line-height: 1.6;
   text-align: center;
-  padding: 20rpx 0;
-  margin-top: 20rpx;
-  margin-bottom: 24rpx;
+  padding: 10rpx 0;
+  margin: 10rpx 0;
   display: block;
 }
 

@@ -6,6 +6,7 @@ const CACHE_EXPIRE_MS = 0; // 临时设为0，强制每次从云端拉取
 const generateCuteId = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
+  // 使用 Math.random() 生成随机 ID，兼容微信基础库 getRandomValues 的 polyfill bug
   for (let i = 0; i < 7; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
@@ -162,7 +163,7 @@ const updateProfile = async (profile) => {
   saveUserData();
 
   try {
-    await uni.cloud.callFunction({
+    const res = await uni.cloud.callFunction({
       name: 'savePersonality',
       data: {
         cuteId: userData.cuteId,
@@ -176,6 +177,26 @@ const updateProfile = async (profile) => {
         personality_test_count: userData.analysis_count
       }
     });
+    // CuteId 冲突 → 重新生成并重试
+    if (res.result?.code === 'CUTEID_CONFLICT') {
+      console.log('[userStore] CuteId 冲突，重新生成:', userData.cuteId, '→ 新值');
+      userData.cuteId = generateCuteId();
+      saveUserData();
+      await uni.cloud.callFunction({
+        name: 'savePersonality',
+        data: {
+          cuteId: userData.cuteId,
+          nickname: userData.nickname,
+          avatar: userData.avatar,
+          gender: userData.gender,
+          personalityCode: userData.current_personality,
+          personalityName: userData.current_personality_name,
+          percentages: userData.current_percentages,
+          relationship_match_count: userData.relationship_match_count,
+          personality_test_count: userData.analysis_count
+        }
+      });
+    }
   } catch (e) {
     console.error('[userStore] 更新用户信息同步失败:', e);
   }
@@ -205,6 +226,26 @@ const addAnalysisRecord = (record) => {
         percentages: record.percentages,
         relationship_match_count: userData.relationship_match_count,
         personality_test_count: userData.analysis_count
+      }
+    }).then(res => {
+      if (res.result?.code === 'CUTEID_CONFLICT') {
+        console.log('[userStore addAnalysisRecord] CuteId 冲突，重新生成:', userData.cuteId);
+        userData.cuteId = generateCuteId();
+        saveUserData();
+        return uni.cloud.callFunction({
+          name: 'savePersonality',
+          data: {
+            cuteId: userData.cuteId,
+            nickname: userData.nickname,
+            avatar: userData.avatar,
+            gender: userData.gender || record.gender,
+            personalityCode: record.personality,
+            personalityName: record.personalityName || '',
+            percentages: record.percentages,
+            relationship_match_count: userData.relationship_match_count,
+            personality_test_count: userData.analysis_count
+          }
+        });
       }
     });
     uni.cloud.callFunction({

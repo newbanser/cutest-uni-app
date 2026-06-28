@@ -1,45 +1,45 @@
-const firstLetters = ['e', 'i', 'x'];
-const secondLetters = ['s', 'n', 'x'];
-const thirdLetters = ['t', 'f', 'x'];
-const fourthLetters = ['j', 'p', 'x'];
+import { getAvatarCloudUrl } from './cloudImages';
 
-const imagePaths = {};
+// 本地路径表 — 仅保留仍在本地的图
+const localPaths = {
+  'logo': '/static/images/logo.png',
+  'tab_home': '/static/images/tab_home.png',
+  'tab_home_active': '/static/images/tab_home_active.png',
+  'delete': '/static/images/delete.png',
+  'unknown': '/static/images/unknown.png',
+  'unknown_icon': '/static/images/unknown_icon.png',
+};
 
-firstLetters.forEach(f => {
-  secondLetters.forEach(s => {
-    thirdLetters.forEach(t => {
-      fourthLetters.forEach(fo => {
-        const key = f + s + t + fo;
-        imagePaths[key] = `/static/images/${key}.png`;
-      });
-    });
-  });
-});
-
-imagePaths['logo'] = '/static/images/logo.png';
-imagePaths['nf_icon'] = '/static/images/nf_icon.png';
-imagePaths['nt_icon'] = '/static/images/nt_icon.png';
-imagePaths['sj_icon'] = '/static/images/sj_icon.png';
-imagePaths['sp_icon'] = '/static/images/sp_icon.png';
-imagePaths['1x_icon'] = '/static/images/1x_icon.png';
-imagePaths['2x_icon'] = '/static/images/2x_icon.png';
-imagePaths['3x_icon'] = '/static/images/3x_icon.png';
-imagePaths['4x_icon'] = '/static/images/4x_icon.png';
-imagePaths['tab_home'] = '/static/images/tab_home.png';
-imagePaths['tab_home_active'] = '/static/images/tab_home_active.png';
-imagePaths['unknown'] = '/static/images/unknown.png';
-imagePaths['unknown_icon'] = '/static/images/unknown_icon.png';
-imagePaths['delete'] = '/static/images/delete.png';
+// 本地阵营图标映射（云未就绪时的兜底）
+const campIconLocal = {
+  'nf': '/static/images/nf_icon.png',
+  'nt': '/static/images/nt_icon.png',
+  'sj': '/static/images/sj_icon.png',
+  'sp': '/static/images/sp_icon.png',
+  '1x': '/static/images/1x_icon.png',
+  '2x': '/static/images/2x_icon.png',
+  '3x': '/static/images/3x_icon.png',
+  '4x': '/static/images/4x_icon.png',
+};
 
 function getPersonalityAvatar(personality) {
-  const lowerPersonality = (personality || 'unknown').toLowerCase();
-  return imagePaths[lowerPersonality] || imagePaths['unknown'];
+  const code = (personality || 'unknown').toLowerCase();
+  // 优先云存储链接
+  const cloudUrl = getAvatarCloudUrl(code);
+  if (cloudUrl) return cloudUrl;
+  // 云未就绪时返回 unknown 占位图
+  return '/static/images/unknown.png';
 }
 
 function getCampIconUrl(personality) {
   const camp = getCampGroup(personality);
-  const iconKey = camp.toLowerCase() + '_icon';
-  return imagePaths[iconKey] || imagePaths['unknown_icon'];
+  if (!camp) return '';
+  const key = camp.toLowerCase() + '_icon';
+  // 优先云存储链接
+  const cloudUrl = getAvatarCloudUrl(key);
+  if (cloudUrl) return cloudUrl;
+  // 云未就绪时返回空
+  return campIconLocal[key] || '/static/images/unknown_icon.png';
 }
 
 function getCampGroup(personality) {

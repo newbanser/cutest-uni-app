@@ -17,14 +17,9 @@ async function incrementMatchCount(cuteId) {
       data: { relationship_match_count: _.inc(1) }
     })
   } else {
-    // 文档不存在 → 新建（首次被匹配的用户）
-    await db.collection('users').add({
-      data: {
-        cuteid: cuteId,
-        relationship_match_count: 1,
-        created_at: db.serverDate()
-      }
-    })
+    // 文档不存在 → 不创建空文档（该 CuteId 可能是输入错误的口令，或尚未注册的用户）
+    // 避免产生没有 openid 的孤立文档，后续被其他人随机到同 CuteId 时产生冲突
+    console.log(`[createMatch] incrementMatchCount: cuteId=${cuteId} 在 users 集合中不存在，跳过计数`)
   }
 }
 

@@ -227,9 +227,8 @@ page {
   color: #646464;
   line-height: 1.6;
   text-align: center;
-  padding: 20rpx 0;
-  margin-top: 20rpx;
-  margin-bottom: 24rpx;
+  padding: 10rpx 0;
+  margin: 10rpx 0;
   display: block;
 }
 </style>

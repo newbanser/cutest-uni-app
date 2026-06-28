@@ -15,13 +15,19 @@
       }
     },
     {
-      "path": "pages/analysis/analysis",
+      "path": "pages/analysis-hell/analysis-hell",
       "style": {
         "navigationBarTitleText": "81型融合人格测试"
       }
     },
     {
       "path": "pages/analysis-simple/analysis-simple",
+      "style": {
+        "navigationBarTitleText": "81型融合人格测试"
+      }
+    },
+    {
+      "path": "pages/analysis-jung/analysis-jung",
       "style": {
         "navigationBarTitleText": "81型融合人格测试"
       }
@@ -41,7 +47,8 @@
     {
       "path": "pages/crush-result/crush-result",
       "style": {
-        "navigationBarTitleText": "融合关系测试"
+        "navigationBarTitleText": "81型融合人格测试",
+        "navigationStyle": "custom"
       }
     },
     {
@@ -83,6 +90,12 @@
         "selectedIconPath": "static/images/tab_home_active.png"
       },
       {
+        "pagePath": "pages/guide/guide",
+        "text": "图鉴",
+        "iconPath": "static/images/tab_guide.png",
+        "selectedIconPath": "static/images/tab_guide_active.png"
+      },
+      {
         "pagePath": "pages/user/user",
         "text": "我的",
         "iconPath": "static/images/tab_user.png",
@@ -111,6 +124,12 @@
           "text": "首页",
           "iconPath": "static/images/tab_home.png",
           "selectedIconPath": "static/images/tab_home_active.png"
+        },
+        {
+          "pagePath": "pages/guide/guide",
+          "text": "图鉴",
+          "iconPath": "static/images/tab_guide.png",
+          "selectedIconPath": "static/images/tab_guide_active.png"
         },
         {
           "pagePath": "pages/user/user",

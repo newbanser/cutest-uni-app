@@ -57,7 +57,7 @@
       <text class="tip-text">本分析仅供娱乐参考，不能代替专业心理评估。</text>
     </view>
 
-    <view class="modal-overlay" v-if="showShareModalFlag" @tap="closeShareModal">
+    <view class="modal-overlay" v-if="showShareModalFlag">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeShareModal">×</view>
         <text class="modal-title">选择分享模式</text>
@@ -70,7 +70,7 @@
             <text class="share-name">复制人格密语</text>
             <text class="share-desc">生成七位密语口令</text>
           </view>
-          <view class="share-card" @tap="generateCuteidImage">
+          <view class="share-card" @tap="generateCuteIdImage">
             <text class="share-name">生成密语海报</text>
             <text class="share-desc">生成朋友圈海报</text>
           </view>
@@ -78,7 +78,7 @@
       </view>
     </view>
 
-    <view class="modal-overlay" v-if="showTestModeModal" @tap="closeTestModeModal">
+    <view class="modal-overlay" v-if="showTestModeModal">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeTestModeModal">×</view>
         <text class="modal-title">选择测试模式</text>
@@ -87,7 +87,7 @@
             <text class="mode-name">直接测试</text>
             <text class="mode-desc">分享你的人格密语</text>
           </view>
-          <view class="mode-card" @tap="goInputCuteid">
+          <view class="mode-card" @tap="goInputCuteId">
             <text class="mode-name">输入密语</text>
             <text class="mode-desc">输入好友的人格密语</text>
           </view>
@@ -95,14 +95,18 @@
       </view>
     </view>
 
-    <view class="modal-overlay" v-if="showModeModal" @tap="closeModeModal">
+    <view class="modal-overlay" v-if="showModeModal">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeModeModal">×</view>
         <text class="modal-title">选择测试难度</text>
         <view class="mode-options">
-          <view class="mode-card" @tap="goToSimpleMode">
+          <view class="mode-card" @tap="goToSimpleV2Mode">
             <text class="mode-name">简单模式</text>
-            <text class="mode-desc">基于荣格八维的基础题</text>
+            <text class="mode-desc">没有难度的简化题，快速测试你的人格</text>
+          </view>
+          <view class="mode-card" @tap="goToSimpleMode">
+            <text class="mode-name">荣格模式</text>
+            <text class="mode-desc">基于荣格八维认知功能，定位你的人格</text>
           </view>
           <view class="mode-card" @tap="goToHellMode">
             <text class="mode-name">地狱模式</text>
@@ -113,7 +117,7 @@
     </view>
 
     <!-- 性别选择弹窗 -->
-    <view class="modal-overlay" v-if="showGenderModal" @tap="closeGenderModal">
+    <view class="modal-overlay" v-if="showGenderModal">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeGenderModal">×</view>
         <text class="modal-title">你的性别是？</text>
@@ -128,48 +132,28 @@
             @tap="selectGender('female')">
             <text class="gender-text">女的</text>
           </view>
-          <view
-            :class="['gender-option', selectedGender === 'x' ? 'selected' : '']"
-            @tap="selectGender('x')">
-            <text class="gender-text">不告诉你</text>
-          </view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 性别保密确认弹窗 -->
-    <view class="modal-overlay" v-if="showPrivacyConfirmModal" @tap="closePrivacyConfirmModal">
-      <view class="modal-container" @tap.stop>
-        <view class="modal-close" @tap="closePrivacyConfirmModal">×</view>
-        <text class="modal-title">确定保密？</text>
-        <text class="modal-desc">选择保密后，仍可在"我的"中随时修改</text>
-        <view class="privacy-buttons">
-          <button class="privacy-btn privacy-btn-cancel" @tap="closePrivacyConfirmModal">重新选择</button>
-          <button class="privacy-btn privacy-btn-confirm" @tap="confirmPrivacy">确定保密</button>
         </view>
       </view>
     </view>
     
     <!-- 输入密语弹窗 -->
-    <view class="modal-overlay" v-if="showInputCuteIdModal" @tap="closeInputCuteIdModal">
+    <view class="modal-overlay" v-if="showInputCuteIdModal">
       <view class="modal-container" @tap.stop>
         <view class="modal-close" @tap="closeInputCuteIdModal">×</view>
         <text class="modal-title">请输入对方的密语</text>
-        <input 
-          class="cuteId-input" 
-          v-model="inputCuteId" 
-          placeholder="人格密语是一串7位的字母数字组合" 
+        <input
+          class="cuteId-input"
+          v-model="inputCuteId"
+          placeholder="人格密语是一串7位的字母数字组合"
           maxlength="7"
         />
         <view class="input-cuteId-buttons">
-          <button class="input-cuteId-btn input-cuteId-btn-cancel" @tap="closeInputCuteIdModal">取消</button>
-          <button class="input-cuteId-btn input-cuteId-btn-direct" @tap="doMatch">开始匹配</button>
+          <view class="input-cuteId-btn input-cuteId-btn-cancel" @tap="closeInputCuteIdModal">取消</view>
+          <view class="input-cuteId-btn input-cuteId-btn-direct" @tap="doMatch">开始匹配</view>
         </view>
       </view>
     </view>
-
-    <!-- 匹配邀请弹窗 -->
-      </view>
+  </view>
 </template>
 
 <script>
@@ -194,7 +178,6 @@ export default {
       isMatchShare: false, // 标记是否来自"关系测试"流程
       // 性别设置相关
       showGenderModal: false,
-      showPrivacyConfirmModal: false,
       selectedGender: '',
       pendingAction: null, // 保存性别后要执行的操作
       // 输入密语相关
@@ -219,7 +202,7 @@ export default {
         };
       }
       
-      const latestRecord = records[records.length - 1];
+      const latestRecord = records.reduce((a, b) => (a.timestamp > b.timestamp ? a : b));
       const personalityCode = latestRecord.personality || 'unknown';
       const personalityInfo = this.personalities[personalityCode] || this.personalities['unknown'];
       
@@ -240,7 +223,7 @@ export default {
         return '当前暂无人格测试记录，点击人格测试马上开始吧';
       }
 
-      const latestRecord = records[records.length - 1];
+      const latestRecord = records.reduce((a, b) => (a.timestamp > b.timestamp ? a : b));
       const now = Date.now();
       const timeDiff = now - latestRecord.timestamp;
       const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
@@ -625,13 +608,19 @@ export default {
     goToSimpleMode() {
       this.showModeModal = false;
       uni.navigateTo({
+        url: '/pages/analysis-jung/analysis-jung'
+      });
+    },
+    goToSimpleV2Mode() {
+      this.showModeModal = false;
+      uni.navigateTo({
         url: '/pages/analysis-simple/analysis-simple'
       });
     },
     goToHellMode() {
       this.showModeModal = false;
       uni.navigateTo({
-        url: '/pages/analysis/analysis'
+        url: '/pages/analysis-hell/analysis-hell'
       });
     },
     loadUserProfile() {
@@ -803,7 +792,7 @@ export default {
         };
       }
       
-      const latestRecord = records.length > 0 ? records[records.length - 1] : null;
+      const latestRecord = records.length > 0 ? records.reduce((a, b) => (a.timestamp > b.timestamp ? a : b)) : null;
       
       if (!latestRecord) {
         const personalityInfo = this.personalities['unknown'];
@@ -919,7 +908,7 @@ export default {
       const myCuteId = this.userStore.userData.cuteId || '';
 
       const latestRecord = this.userStore.userData.analysis_records && this.userStore.userData.analysis_records.length > 0
-        ? this.userStore.userData.analysis_records[this.userStore.userData.analysis_records.length - 1]
+        ? this.userStore.userData.analysis_records.reduce((a, b) => (a.timestamp > b.timestamp ? a : b))
         : null;
 
       if (!latestRecord) {
@@ -938,18 +927,20 @@ export default {
 
       const myData = {
         percentages: latestRecord.percentages || { E: 50, I: 50, S: 50, N: 50, T: 50, F: 50, J: 50, P: 50 },
-        gender: myGender
+        gender: myGender,
+        personality: myPersonality
       };
 
       let friendData = null;
       let friendPersonality = '';
 
       if (friendPersonalityData && friendPersonalityData.percentages && Object.keys(friendPersonalityData.percentages).length > 0) {
+        friendPersonality = friendPersonalityData.personality || friendPersonalityData.personalityCode || '';
         friendData = {
           percentages: friendPersonalityData.percentages,
-          gender: friendPersonalityData.gender || (myGender === 'male' ? 'female' : 'male')
+          gender: friendPersonalityData.gender || (myGender === 'male' ? 'female' : 'male'),
+          personality: friendPersonality
         };
-        friendPersonality = friendPersonalityData.personality || friendPersonalityData.personalityCode || '';
       } else {
         uni.hideLoading();
         uni.showModal({
@@ -968,13 +959,14 @@ export default {
       // 判断是否来自链接流程（好友分享的链接），交换 userA/userB
       // 链接流程：好友（friendCuteId）是发起方 → userB（initiator）；
       // 手动流程：本地用户（myCuteId）是发起方 → userB（initiator）
-      const fromLink = uni.getStorageSync('fromLink');
+      var fromLink = uni.getStorageSync('fromLink');
+      // ⚠️ 立即清除 fromLink，防止异步流程残留污染后续匹配
       uni.removeStorageSync('fromLink');
 
-      const initiatorCuteId = fromLink ? friendCuteId : myCuteId;
-      const initiatorPersonality = fromLink ? friendPersonality : myPersonality;
-      const initiatorData = fromLink ? friendData.percentages : myData.percentages;
-      const targetCuteId = fromLink ? myCuteId : friendCuteId;
+      var initiatorCuteId = fromLink ? friendCuteId : myCuteId;
+      var initiatorPersonality = fromLink ? friendPersonality : myPersonality;
+      var initiatorData = fromLink ? friendData.percentages : myData.percentages;
+      var targetCuteId = fromLink ? myCuteId : friendCuteId;
       const targetPersonality = fromLink ? myPersonality : friendPersonality;
       const targetData = fromLink ? myData.percentages : friendData.percentages;
 
@@ -991,9 +983,14 @@ export default {
       const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
       matchResultsMap[friendCuteId] = savedMatchResult;
       uni.setStorageSync('matchResultsMap', matchResultsMap);
-      uni.setStorageSync('matchResult', savedMatchResult);
+      // 按好友 cuteId 键值存储，避免多人匹配互相覆盖
+      const matchResultByFriend = uni.getStorageSync('matchResultByFriend') || {};
+      matchResultByFriend[friendCuteId] = savedMatchResult;
+      uni.setStorageSync('matchResultByFriend', matchResultByFriend);
+      // matchResult 全局单键已废弃（不再写 uni.setStorageSync('matchResult', ...)），避免跨好友串数据
 
       // 保存到本地匹配记录列表（每次匹配都记录，用于计数）
+      // ⚠️ 去重改用 cuteId 而非关系名，避免不同配对产出相同关系名导致误去重
       const matchRecords = uni.getStorageSync('matchRecords') || [];
       const exists = matchRecords.some(r =>
         (r.userA?.cuteId === friendCuteId && r.userB?.cuteId === myCuteId) ||
@@ -1048,14 +1045,7 @@ export default {
       this.showGenderModal = false;
     },
     selectGender(gender) {
-      if (gender === 'x') {
-        // 保密 → 隐私确认弹窗
-        this.selectedGender = 'x';
-        this.showGenderModal = false;
-        this.showPrivacyConfirmModal = true;
-        return;
-      }
-      // 直接保存并执行后续操作
+      // 直接保存性别并执行后续操作
       this.selectedGender = gender;
       this.userStore.updateProfile({ gender });
       this.closeGenderModal();
@@ -1069,13 +1059,6 @@ export default {
         });
         return;
       }
-      
-      if (this.selectedGender === 'x') {
-        this.showGenderModal = false;
-        this.showPrivacyConfirmModal = true;
-        return;
-      }
-      
       this.userStore.updateProfile({
         gender: this.selectedGender
       });
@@ -1084,21 +1067,6 @@ export default {
         icon: 'success'
       });
       this.closeGenderModal();
-      
-      // 执行之前暂存的操作
-      this.executePendingAction();
-    },
-    confirmPrivacy() {
-      this.userStore.updateProfile({
-        gender: 'x'
-      });
-      uni.showToast({
-        title: '性别已保密',
-        icon: 'success'
-      });
-      this.showPrivacyConfirmModal = false;
-      
-      // 执行之前暂存的操作
       this.executePendingAction();
     },
     executePendingAction() {
@@ -1142,12 +1110,6 @@ export default {
         }
       }
     },
-    closePrivacyConfirmModal() {
-      this.showPrivacyConfirmModal = false;
-      setTimeout(() => {
-        this.showGenderModal = true;
-      }, 100);
-    },
     handleIncomingMatch(matchTarget) {
       // 防止重复执行（onShow 和 onLoad 的 setTimeout 都会触发）
       if (uni.getStorageSync("_handlingIncoming")) { console.log("[handleIncomingMatch] 已在处理中，跳过"); return; }
@@ -1158,14 +1120,27 @@ export default {
       uni.setStorageSync('inviterCuteid', matchTarget);
 
       // 优先从 matchResultsMap 缓存读取已有匹配结果（按好友 cuteId 索引）
+      // ⚠️ 校验当前用户身份：缓存里的 userB 必须是当前用户，防止同设备切号后串数据
       const matchResultsMap = uni.getStorageSync('matchResultsMap') || {};
       const cachedMatch = matchResultsMap[matchTarget];
       if (cachedMatch && cachedMatch.matchData) {
-        uni.setStorageSync('matchTarget', '');
-        uni.navigateTo({
-          url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(cachedMatch.userB.cuteId)}&friendID=${encodeURIComponent(matchTarget)}`
-        });
-        return;
+        const myCurrentCuteId = this.userStore.userData.cuteId;
+        const cachedUserCuteId = cachedMatch.userB?.cuteId;
+        if (cachedUserCuteId === myCurrentCuteId) {
+          uni.setStorageSync('matchTarget', '');
+          uni.removeStorageSync("_handlingIncoming");
+          uni.navigateTo({
+            url: `/pages/crush-result/crush-result?myID=${encodeURIComponent(cachedMatch.userB.cuteId)}&friendID=${encodeURIComponent(matchTarget)}`
+          });
+          return;
+        }
+        // 身份不匹配（换号/他人设备），清除过期缓存继续走正常流程
+        console.log('[handleIncomingMatch] 缓存身份不匹配，清除过期缓存。缓存:', cachedUserCuteId, '当前:', myCurrentCuteId);
+        delete matchResultsMap[matchTarget];
+        uni.setStorageSync('matchResultsMap', matchResultsMap);
+        const matchResultByFriend = uni.getStorageSync('matchResultByFriend') || {};
+        delete matchResultByFriend[matchTarget];
+        uni.setStorageSync('matchResultByFriend', matchResultByFriend);
       }
 
       // 检查是否需要设置性别
@@ -1345,9 +1320,8 @@ page {
   color: #646464;
   line-height: 1.6;
   text-align: center;
-  padding: 20rpx 0;
-  margin-top: 20rpx;
-  margin-bottom: 24rpx;
+  padding: 10rpx 0;
+  margin: 10rpx 0;
   display: block;
 }
 
@@ -1573,7 +1547,8 @@ button::after {
   font-size: 40rpx;
   color: #999999;
   line-height: 1;
-  padding: 8rpx;
+  padding: 16rpx;
+  z-index: 10;
 }
 
 .modal-title {

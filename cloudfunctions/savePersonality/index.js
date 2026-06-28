@@ -44,38 +44,50 @@ exports.main = async (event, context) => {
     
     console.log('[savePersonality] 准备保存的数据:', JSON.stringify(userData))
     
-    // 用 cuteid 查询
-    const cuteidResult = await db.collection('users')
-      .where({ cuteid: cuteId })
-      .get()
-    
-    console.log('[savePersonality] cuteid查询结果:', JSON.stringify(cuteidResult))
-    
-    if (cuteidResult.data && cuteidResult.data.length > 0) {
-      // 找到，更新
-      await db.collection('users').doc(cuteidResult.data[0]._id).update({
-        data: userData
-      })
-      console.log('[savePersonality] ✅ 用户数据更新成功')
-      return { success: true, message: '用户数据更新成功' }
-    }
-    
-    // 用 openid 查询
+    // 优先用 openid 查（openid 是微信唯一身份），cuteId 仅做冲突检测
+    // 防止 CuteId 碰撞导致数据覆盖到错误用户
+
     const openidResult = await db.collection('users')
       .where({ openid })
       .get()
-    
-    console.log('[savePersonality] openid查询结果:', JSON.stringify(openidResult))
-    
+
+    const cuteidResult = await db.collection('users')
+      .where({ cuteid: cuteId })
+      .get()
+
+    // 冲突检测：cuteId 已被其他 openid 占用（cuteId 碰撞）
+    if (cuteidResult.data && cuteidResult.data.length > 0) {
+      const existingOpenid = cuteidResult.data[0].openid
+      if (existingOpenid && existingOpenid !== openid) {
+        console.warn(`[savePersonality] ⚠️ CuteId 冲突: cuteId=${cuteId} 已被 openid=${existingOpenid} 占用，当前 openid=${openid}`)
+        // 当前用户的 CuteId 与其他用户冲突，返回冲突信号让前端重新生成
+        return {
+          success: false,
+          message: 'CuteId 已存在，请重新生成',
+          code: 'CUTEID_CONFLICT'
+        }
+      }
+    }
+
     if (openidResult.data && openidResult.data.length > 0) {
-      // 找到，用 openid 更新，保留原来的 cuteid
+      // 找到，用 openid 更新（保留原有 cuteId，除非前端传了新值）
       await db.collection('users').doc(openidResult.data[0]._id).update({
         data: userData
       })
       console.log('[savePersonality] ✅ 用户数据更新成功（通过openid）')
       return { success: true, message: '用户数据更新成功' }
     }
-    
+
+    // openid 也找不到，用 cuteId 查（兼容老数据，cuteId 对应但 openid 不同或为空）
+    if (cuteidResult.data && cuteidResult.data.length > 0) {
+      // 注意：能来到这意味着 cuteId 的 openid 为空或与当前一致（冲突检测已过滤掉冲突情况）
+      await db.collection('users').doc(cuteidResult.data[0]._id).update({
+        data: userData
+      })
+      console.log('[savePersonality] ✅ 用户数据更新成功')
+      return { success: true, message: '用户数据更新成功' }
+    }
+
     // 都找不到，创建新用户
     userData.created_at = db.serverDate()
     const addResult = await db.collection('users').add({

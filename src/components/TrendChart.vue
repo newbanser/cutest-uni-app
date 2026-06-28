@@ -65,7 +65,7 @@ const chartData = computed(() => {
     
     const topPercent = Math.max(0, Math.min(100, score));
     const bottomPercent = Math.max(0, Math.min(100, 100 - topPercent));
-    const offset = (50 - topPercent) * 2;
+    const offset = (50 - topPercent) * 1.2;
 
     data.push({
       offset: offset,
@@ -87,7 +87,7 @@ const chartData = computed(() => {
 .chart-header-section {
   display: flex;
   justify-content: center;
-  margin-bottom: 24rpx;
+  margin-bottom: 0rpx;
 }
 
 .header-item {
@@ -110,7 +110,7 @@ const chartData = computed(() => {
 
 .chart-main-area {
   position: relative;
-  height: 330rpx;
+  height: 320rpx;
   display: flex;
   align-items: center;
 }
@@ -167,7 +167,6 @@ const chartData = computed(() => {
   width: 36rpx;
   height: 100%;
   justify-content: center;
-  transition: transform 0.3s ease;
 }
 
 .bar-percentage {
@@ -202,7 +201,7 @@ const chartData = computed(() => {
 .chart-footer-section {
   display: flex;
   justify-content: center;
-  margin-top: 24rpx;
+  margin-top: 0rpx;
 }
 
 .footer-item {
