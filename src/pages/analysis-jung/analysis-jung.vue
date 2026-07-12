@@ -318,15 +318,21 @@ const doFinishAnalysis = async (isPrivate) => {
     const jPercent = scoring.getGroupPercentage(rawScores, judgingDims);
     const pPercent = scoring.getGroupPercentage(rawScores, perceivingDims);
     
+    // 改为互补百分比（与分数卡判型一致）
+    const totalE = ePercent + iPercent;
+    const totalS = sPercent + nPercent;
+    const totalT = tPercent + fPercent;
+    const totalJ = jPercent + pPercent;
+
     const newPercentages = {
-      E: ePercent,
-      I: iPercent,
-      N: nPercent,
-      S: sPercent,
-      T: tPercent,
-      F: fPercent,
-      J: jPercent,
-      P: pPercent
+      E: totalE > 0 ? Math.round((ePercent / totalE) * 100) : 50,
+      I: totalE > 0 ? Math.round((iPercent / totalE) * 100) : 50,
+      S: totalS > 0 ? Math.round((sPercent / totalS) * 100) : 50,
+      N: totalS > 0 ? Math.round((nPercent / totalS) * 100) : 50,
+      T: totalT > 0 ? Math.round((tPercent / totalT) * 100) : 50,
+      F: totalT > 0 ? Math.round((fPercent / totalT) * 100) : 50,
+      J: totalJ > 0 ? Math.round((jPercent / totalJ) * 100) : 50,
+      P: totalJ > 0 ? Math.round((pPercent / totalJ) * 100) : 50
     };
 
     const gender = userStore.userData.gender;

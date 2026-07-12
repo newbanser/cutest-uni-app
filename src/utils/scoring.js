@@ -309,26 +309,20 @@ const scoring = {
     return Math.round((avg / 15) * 100);
   },
 
-  // 简单模式：正确的判型逻辑
-  // 1. 先找到占比更高的作为主要字母
-  // 2. 主要字母占比 45%~55% → X
-  // 3. 主要字母占比 >55% → 偏向主要字母
-  // 4. 主要字母占比 <45% → 偏向对立字母
+  // 简单模式：算分判型（45%~55%→X 融合）
+  // 全面一致：相等时取左侧字母以避免判 X 回退的错位
   judgeDimension: function(group1Percent, group2Percent, letter1, letter2) {
-    // 找到占比更高的作为主要字母
-    let mainLetter = group1Percent > group2Percent ? letter1 : letter2;
-    let mainPercent = group1Percent > group2Percent ? group1Percent : group2Percent;
-    
-    // 主要字母占比在 45%~55% → 融合
+    var mainLetter = group1Percent >= group2Percent ? letter1 : letter2;
+    var mainPercent = group1Percent >= group2Percent ? group1Percent : group2Percent;
+
     if (mainPercent >= 45 && mainPercent <= 55) {
       return 'X';
     }
-    
-    // 主要字母占比 >55% → 偏向主要字母
+
     return mainLetter;
   },
 
-  // 简单模式：判定最终人格类型
+  // 简单模式：判定最终人格类型（荣格/地狱模式共用判型逻辑）
   determineSimplePersonality: function(scores) {
     // 第一位：E/I/X
     const introvertDims = ['Ni', 'Si', 'Ti', 'Fi'];
@@ -494,32 +488,30 @@ const scoring = {
     return point;
   },
 
-  // 人格类型判定（基于百分比）
-  // 规则：与简单模式保持一致
+  // 地狱模式判型（与荣格模式一致的判型逻辑）
   determinePersonality: function(rawScores) {
     const THRESHOLD_LOW = 45;
     const THRESHOLD_HIGH = 55;
     let personality = '';
-    
+
     const determineLetter = (leftScore, rightScore, leftLetter, rightLetter) => {
       const total = leftScore + rightScore;
       if (total > 0) {
         const leftPercent = Math.round((leftScore / total) * 100);
         const rightPercent = Math.round((rightScore / total) * 100);
-        
-        // 与简单模式相同的判型逻辑
-        let mainLetter = leftPercent > rightPercent ? leftLetter : rightLetter;
-        let mainPercent = leftPercent > rightPercent ? leftPercent : rightPercent;
-        
+
+        let mainLetter = leftPercent >= rightPercent ? leftLetter : rightLetter;
+        let mainPercent = leftPercent >= rightPercent ? leftPercent : rightPercent;
+
         if (mainPercent >= THRESHOLD_LOW && mainPercent <= THRESHOLD_HIGH) {
           return 'X';
         }
-        
+
         return mainLetter;
       }
       return 'X';
     };
-    
+
     const eScore = rawScores.E || 0;
     const iScore = rawScores.I || 0;
     personality += determineLetter(eScore, iScore, 'E', 'I');

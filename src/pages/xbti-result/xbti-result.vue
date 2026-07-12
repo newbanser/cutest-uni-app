@@ -264,7 +264,7 @@ const calculateDimensionDataForRecord = (record) => {
     let label = '';
     let score = leftPercent;
 
-    // simple_v2 是纯二分判型，不判 X
+    // simple_v2 是纯二分判型；荣格/地狱模式保留 45~55%→X
     if (!isSimpleV2 && mainPercent >= SIMPLE_MODE_THRESHOLD_LOW && mainPercent <= SIMPLE_MODE_THRESHOLD_HIGH) {
       label = '融合-X';
     } else {
